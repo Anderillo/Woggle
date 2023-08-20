@@ -18,6 +18,7 @@ class MainApp extends StatefulWidget {
   State<MainApp> createState() => _MainAppState();
 }
 
+const int MIN_WORD_LENGTH_DEFAULT = 4;
 class _MainAppState extends State<MainApp> {
   Dictionary dictionary = Dictionary();
   bool isDictionaryLoaded = false;
@@ -28,6 +29,7 @@ class _MainAppState extends State<MainApp> {
   bool get isSearchAvailable => isDictionaryLoaded && boardString.isNotEmpty && sqrt(boardString.replaceAll('qu', 'q').length).truncate() == sqrt(boardString.replaceAll('qu', 'q').length);
   Set<String>? removedWords;
   SharedPreferences? prefs;
+  int minWordLength = MIN_WORD_LENGTH_DEFAULT;
 
   @override
   void initState() {
@@ -39,6 +41,7 @@ class _MainAppState extends State<MainApp> {
     prefs = await SharedPreferences.getInstance();
     removedWords = {};
     removedWords!.addAll(prefs!.getStringList('removedWords')?.toList() ?? []);
+    minWordLength = prefs!.getInt('minWordLength') ?? MIN_WORD_LENGTH_DEFAULT;
     setState(() {});
     
     String dictionaryFile = await DefaultAssetBundle.of(context).loadString('assets/dictionary.txt');
@@ -109,6 +112,42 @@ class _MainAppState extends State<MainApp> {
                               }),
                             ),
                           ),
+                          DropdownButton(
+                            value: minWordLength,
+                            items: const [
+                              DropdownMenuItem(
+                                value: 1,
+                                child: Text('1'),
+                              ),
+                              DropdownMenuItem(
+                                value: 2,
+                                child: Text('2'),
+                              ),
+                              DropdownMenuItem(
+                                value: 3,
+                                child: Text('3'),
+                              ),
+                              DropdownMenuItem(
+                                value: 4,
+                                child: Text('4'),
+                              ),
+                              DropdownMenuItem(
+                                value: 5,
+                                child: Text('5'),
+                              ),
+                              DropdownMenuItem(
+                                value: 6,
+                                child: Text('6'),
+                              ),
+                            ],
+                            onChanged: (value) async {
+                              minWordLength = value ?? MIN_WORD_LENGTH_DEFAULT;
+                              setState(() {});
+
+                              prefs ??= await SharedPreferences.getInstance();
+                              prefs!.setInt('minWordLength', minWordLength);
+                            },
+                          ),
                         ],
                       ),
                       SizedBox(
@@ -151,7 +190,7 @@ class _MainAppState extends State<MainApp> {
                 TextButton(
                   onPressed: isSearchAvailable ? () {
                     FocusManager.instance.primaryFocus?.unfocus();
-                    board = Board(boardString, 4);
+                    board = Board(boardString, minWordLength);
                     words = board!.search(dictionary);
                     setState(() {});
                   } : null,
