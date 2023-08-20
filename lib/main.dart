@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:boggle_solver/board/board.dart';
 import 'package:boggle_solver/definition_dialog.dart';
 import 'package:boggle_solver/dictionary/dictionary.dart';
+import 'package:boggle_solver/removed_words_page.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -55,8 +56,22 @@ class _MainAppState extends State<MainApp> {
     }
   }
 
+  Future<void> unRemoveWord(String word) async {
+    if (removedWords != null) {
+      removedWords!.remove(word);
+      dictionary.addWord(word);
+      words = board!.search(dictionary);
+      setState(() {});
+      prefs ??= await SharedPreferences.getInstance();
+      prefs!.setStringList('removedWords', removedWords!.toList());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    List<String> workingWords = [...words.toList()];
+    workingWords.removeWhere((word) => removedWords?.contains(word) ?? false);
+
     return MaterialApp(
       home: Builder(
         builder: (context) {
@@ -67,7 +82,7 @@ class _MainAppState extends State<MainApp> {
               actions: [
                 TextButton(
                   onPressed: removedWords?.isNotEmpty ?? false ? () {
-
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => RemovedWordsPage(removedWords!, unRemoveWord)));
                   } : null,
                   child: Text(
                     'Removed Words',
@@ -101,11 +116,11 @@ class _MainAppState extends State<MainApp> {
                         width: MediaQuery.of(context).size.width,
                         child: buildBoard(context),
                       ),
-                      if (words.isNotEmpty) ...[
-                        Text('Total words: ${words.length}'),
+                      if (workingWords.isNotEmpty) ...[
+                        Text('Total words: ${workingWords.length}'),
                         const SizedBox(height: 20,),
                         Wrap(
-                          children: words.map((word) => (removedWords?.contains(word) ?? false) ? Container() : Padding(
+                          children: workingWords.map((word) => Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4.0),
                             child: Chip(
                               label: InkWell(
