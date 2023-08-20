@@ -18,7 +18,7 @@ class MainApp extends StatefulWidget {
   State<MainApp> createState() => _MainAppState();
 }
 
-const int MIN_WORD_LENGTH_DEFAULT = 4;
+const int MIN_WORD_LENGTH_DEFAULT = 3;
 class _MainAppState extends State<MainApp> {
   Dictionary dictionary = Dictionary();
   bool isDictionaryLoaded = false;
@@ -63,7 +63,7 @@ class _MainAppState extends State<MainApp> {
     if (removedWords != null) {
       removedWords!.remove(word);
       dictionary.addWord(word);
-      words = board!.search(dictionary);
+      if (words != null) { words = board!.search(dictionary); }
       setState(() {});
       prefs ??= await SharedPreferences.getInstance();
       prefs!.setStringList('removedWords', removedWords!.toList());
