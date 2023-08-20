@@ -23,7 +23,7 @@ class _MainAppState extends State<MainApp> {
   Dictionary dictionary = Dictionary();
   bool isDictionaryLoaded = false;
   Board? board;
-  Set<String> words = {};
+  Set<String>? words;
   TextEditingController controller = TextEditingController();
   String boardString = '';
   bool get isSearchAvailable => isDictionaryLoaded && boardString.isNotEmpty && sqrt(boardString.replaceAll('qu', 'q').length).truncate() == sqrt(boardString.replaceAll('qu', 'q').length);
@@ -51,7 +51,7 @@ class _MainAppState extends State<MainApp> {
 
   Future<void> removeWord(String word) async {
     if (removedWords != null) {
-      words.remove(word);
+      words?.remove(word);
       setState(() {});
       prefs ??= await SharedPreferences.getInstance();
       removedWords!.add(word);
@@ -72,8 +72,11 @@ class _MainAppState extends State<MainApp> {
 
   @override
   Widget build(BuildContext context) {
-    List<String> workingWords = [...words.toList()];
-    workingWords.removeWhere((word) => removedWords?.contains(word) ?? false);
+    List<String>? workingWords;
+    if (words != null) {
+      workingWords = [...words!.toList()];
+      workingWords.removeWhere((word) => removedWords?.contains(word) ?? false);
+    }
 
     return MaterialApp(
       home: Builder(
@@ -100,66 +103,57 @@ class _MainAppState extends State<MainApp> {
                   padding: const EdgeInsets.all(8.0),
                   child: Column(
                     children: [
+                      TextField(
+                        textAlign: TextAlign.center,
+                        controller: controller,
+                        onChanged: (String newString) => setState(() {
+                          boardString = newString;
+                          words = null;
+                        }),
+                      ),
+                      SizedBox(
+                        height: MediaQuery.of(context).size.width - 120,
+                        width: MediaQuery.of(context).size.width - 120,
+                        child: buildBoard(context),
+                      ),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(
-                            child: TextField(
-                              textAlign: TextAlign.center,
-                              controller: controller,
-                              onChanged: (String newString) => setState(() {
-                                boardString = newString;
-                                words = {};
-                              }),
-                            ),
-                          ),
-                          DropdownButton(
-                            value: minWordLength,
-                            items: const [
-                              DropdownMenuItem(
-                                value: 1,
-                                child: Text('1'),
-                              ),
-                              DropdownMenuItem(
-                                value: 2,
-                                child: Text('2'),
-                              ),
-                              DropdownMenuItem(
-                                value: 3,
-                                child: Text('3'),
-                              ),
-                              DropdownMenuItem(
-                                value: 4,
-                                child: Text('4'),
-                              ),
-                              DropdownMenuItem(
-                                value: 5,
-                                child: Text('5'),
-                              ),
-                              DropdownMenuItem(
-                                value: 6,
-                                child: Text('6'),
+                          Text(workingWords == null ? '' : workingWords.isEmpty ? 'No words found!' : 'Total words: ${workingWords.length}'),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              const Text('Min word length: '),
+                              DropdownButton(
+                                value: minWordLength,
+                                items: const [
+                                  DropdownMenuItem(value: 1, child: Text('1')),
+                                  DropdownMenuItem(value: 2, child: Text('2')),
+                                  DropdownMenuItem(value: 3, child: Text('3')),
+                                  DropdownMenuItem(value: 4, child: Text('4')),
+                                  DropdownMenuItem(value: 5, child: Text('5')),
+                                  DropdownMenuItem(value: 6, child: Text('6')),
+                                ],
+                                onChanged: (value) async {
+                                  minWordLength = value ?? MIN_WORD_LENGTH_DEFAULT;
+                                  if (words != null) {
+                                    board = Board(boardString, minWordLength);
+                                    words = board!.search(dictionary);
+                                  }
+                                  setState(() {});
+
+                                  prefs ??= await SharedPreferences.getInstance();
+                                  prefs!.setInt('minWordLength', minWordLength);
+                                },
                               ),
                             ],
-                            onChanged: (value) async {
-                              minWordLength = value ?? MIN_WORD_LENGTH_DEFAULT;
-                              setState(() {});
-
-                              prefs ??= await SharedPreferences.getInstance();
-                              prefs!.setInt('minWordLength', minWordLength);
-                            },
                           ),
                         ],
                       ),
-                      SizedBox(
-                        height: MediaQuery.of(context).size.width,
-                        width: MediaQuery.of(context).size.width,
-                        child: buildBoard(context),
-                      ),
-                      if (workingWords.isNotEmpty) ...[
-                        Text('Total words: ${workingWords.length}'),
+                      if (workingWords?.isNotEmpty ?? false) ...[
                         const SizedBox(height: 20,),
                         Wrap(
-                          children: workingWords.map((word) => Padding(
+                          children: workingWords!.map((word) => Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4.0),
                             child: Chip(
                               label: InkWell(
@@ -178,6 +172,7 @@ class _MainAppState extends State<MainApp> {
                           )).toList(),
                         ),
                       ],
+                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
