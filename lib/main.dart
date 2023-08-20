@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:boggle_solver/board/board.dart';
+import 'package:boggle_solver/definition_dialog.dart';
 import 'package:boggle_solver/dictionary/dictionary.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,12 +41,7 @@ class _MainAppState extends State<MainApp> {
     setState(() {});
     
     String dictionaryFile = await DefaultAssetBundle.of(context).loadString('assets/dictionary.txt');
-    for (String word in dictionaryFile.split('\n')) {
-      if (!(removedWords!.contains(word.toLowerCase().trim()))) { dictionary.addWord(word); }
-      else {
-        print(word);
-      }
-    }
+    for (String word in dictionaryFile.split('\n')) { if (!(removedWords!.contains(word.toLowerCase().trim()))) { dictionary.addWord(word); } }
     setState(() => isDictionaryLoaded = true);
   }
 
@@ -62,88 +58,98 @@ class _MainAppState extends State<MainApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          elevation: 0,
-          title: const Text('Boggle Solver'),
-          actions: [
-            TextButton(
-              onPressed: removedWords?.isNotEmpty ?? false ? () {
+      home: Builder(
+        builder: (context) {
+          return Scaffold(
+            appBar: AppBar(
+              elevation: 0,
+              title: const Text('Boggle Solver'),
+              actions: [
+                TextButton(
+                  onPressed: removedWords?.isNotEmpty ?? false ? () {
 
-              } : null,
-              child: Text(
-                'Removed Words',
-                style: TextStyle(color: removedWords?.isNotEmpty ?? false ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).disabledColor),
-              ),
+                  } : null,
+                  child: Text(
+                    'Removed Words',
+                    style: TextStyle(color: removedWords?.isNotEmpty ?? false ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).disabledColor),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            child: Container(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: [
-                  Row(
+            body: SafeArea(
+              child: SingleChildScrollView(
+                child: Container(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
                     children: [
-                      Expanded(
-                        child: TextField(
-                          textAlign: TextAlign.center,
-                          controller: controller,
-                          onChanged: (String newString) => setState(() {
-                            boardString = newString;
-                            words = {};
-                          }),
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              textAlign: TextAlign.center,
+                              controller: controller,
+                              onChanged: (String newString) => setState(() {
+                                boardString = newString;
+                                words = {};
+                              }),
+                            ),
+                          ),
+                        ],
                       ),
+                      SizedBox(
+                        height: MediaQuery.of(context).size.width,
+                        width: MediaQuery.of(context).size.width,
+                        child: buildBoard(context),
+                      ),
+                      if (words.isNotEmpty) ...[
+                        Text('Total words: ${words.length}'),
+                        const SizedBox(height: 20,),
+                        Wrap(
+                          children: words.map((word) => (removedWords?.contains(word) ?? false) ? Container() : Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            child: Chip(
+                              label: InkWell(
+                                onTap: () => showDialog(
+                                  context: context,
+                                  builder: (BuildContext dialogContext) => DefinitionDialog(word),
+                                ),
+                                child: Text(word),
+                              ),
+                              deleteIcon: Icon(
+                                Icons.close_rounded,
+                                color: removedWords != null ? Theme.of(context).disabledColor : Theme.of(context).dividerColor,
+                              ),
+                              onDeleted: () => removeWord(word),
+                            ),
+                          )).toList(),
+                        ),
+                      ],
                     ],
                   ),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.width,
-                    width: MediaQuery.of(context).size.width,
-                    child: buildBoard(context),
+                ),
+              ),
+            ),
+            floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+            floatingActionButton: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: isSearchAvailable ? () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    board = Board(boardString, 4);
+                    words = board!.search(dictionary);
+                    setState(() {});
+                  } : null,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                    color: Theme.of(context).canvasColor,
+                    child: const Text('Search'),
                   ),
-                  if (words.isNotEmpty) ...[
-                    Text('Total words: ${words.length}'),
-                    const SizedBox(height: 20,),
-                    Wrap(
-                      children: words.map((word) => (removedWords?.contains(word) ?? false) ? Container() : Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        child: Chip(
-                          label: Text(word),
-                          deleteIcon: Icon(
-                            Icons.close_rounded,
-                            color: removedWords != null ? Theme.of(context).disabledColor : Theme.of(context).dividerColor,
-                          ),
-                          onDeleted: () => removeWord(word),
-                        ),
-                      )).toList(),
-                    ),
-                  ],
-                ],
-              ),
+                ),
+              ],
             ),
-          ),
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        floatingActionButton: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            TextButton(
-              onPressed: isSearchAvailable ? () {
-                FocusManager.instance.primaryFocus?.unfocus();
-                board = Board(boardString, 4);
-                words = board!.search(dictionary);
-                setState(() {});
-              } : null,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                color: Theme.of(context).canvasColor,
-                child: const Text('Search'),
-              ),
-            ),
-          ],
-        ),
+          );
+        }
       ),
     );
   }
