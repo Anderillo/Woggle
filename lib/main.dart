@@ -25,7 +25,7 @@ class _MainAppState extends State<MainApp> {
   Set<String> words = {};
   TextEditingController controller = TextEditingController();
   String boardString = '';
-  bool get isSearchAvailable => isDictionaryLoaded && boardString.isNotEmpty && sqrt(boardString.length).truncate() == sqrt(boardString.length);
+  bool get isSearchAvailable => isDictionaryLoaded && boardString.isNotEmpty && sqrt(boardString.replaceAll('qu', 'q').length).truncate() == sqrt(boardString.replaceAll('qu', 'q').length);
   Set<String>? removedWords;
   SharedPreferences? prefs;
 
@@ -170,20 +170,26 @@ class _MainAppState extends State<MainApp> {
   }
 
   Widget buildBoard(BuildContext context) {
-    int dimension = sqrt(max(boardString.length, 1)).ceil();
+    int dimension = sqrt(max(boardString.replaceAll('qu', 'q').length, 1)).ceil();
+    List<String> letters = boardString.toLowerCase().split('');
+    for (int i = 0; i < letters.length; i++) {
+      if (letters[i] == 'q' && i + 1 < letters.length && letters[i + 1] == 'u') {
+        letters[i] = 'qu';
+        letters.removeAt(i + 1);
+      }
+    }
+
     return GridView.count(
       padding: EdgeInsets.zero,
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
       crossAxisCount: dimension,
-      children: List.generate(boardString.length, (index) {
-        return Center(
-          child: Text(
-            boardString[index],
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-        );
-      }),
+      children: letters.map((letter) => Center(
+        child: Text(
+          letter,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+      )).toList(),
     );
   }
 }

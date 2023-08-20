@@ -10,7 +10,7 @@ class Board {
   Board(String boardString, this.minWordLength) {
     List<String> boardStringList = boardString.toLowerCase().split('');
     for (int i = 0; i < boardStringList.length; i++) {
-      if (boardStringList[i] == 'q') {
+      if (boardStringList[i] == 'q' && i + 1 < boardStringList.length && boardStringList[i + 1] == 'u') {
         boardStringList[i] = 'qu';
         boardStringList.removeAt(i + 1);
       }
