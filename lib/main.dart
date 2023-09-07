@@ -71,6 +71,7 @@ class _MainAppState extends State<MainApp> {
             timer.cancel();
             this.timer = null;
           });
+          FocusManager.instance.primaryFocus?.unfocus();
           showDialog(context: buildContext, builder: (BuildContext dialogContext) => AlertDialog(
             content: const Text('Time\'s up!'),
             actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Okei'))],
