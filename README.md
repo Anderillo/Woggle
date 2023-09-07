@@ -1,3 +1,3 @@
-# boggle_solver
+# Boggle Solver
 
-A new Flutter project.
+A small Flutter project for making Boggle easy to play and the solutions easy to see.

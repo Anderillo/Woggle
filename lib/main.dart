@@ -5,6 +5,7 @@ import 'package:boggle_solver/board/board.dart';
 import 'package:boggle_solver/board/dice.dart';
 import 'package:boggle_solver/definition_dialog.dart';
 import 'package:boggle_solver/dictionary/dictionary.dart';
+import 'package:boggle_solver/min_word_length_dialog.dart';
 import 'package:boggle_solver/removed_words_page.dart';
 import 'package:boggle_solver/utils.dart';
 import 'package:flutter/material.dart';
@@ -60,7 +61,7 @@ class _MainAppState extends State<MainApp> {
     setState(() => isDictionaryLoaded = true);
   }
 
-  void startTimer() {
+  void startTimer(BuildContext buildContext) {
     setState(() => numSeconds = NUM_SECONDS);
     timer = Timer.periodic(
       const Duration(seconds: 1),
@@ -70,6 +71,10 @@ class _MainAppState extends State<MainApp> {
             timer.cancel();
             this.timer = null;
           });
+          showDialog(context: buildContext, builder: (BuildContext dialogContext) => AlertDialog(
+            content: const Text('Time\'s up!'),
+            actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Okei'))],
+          ));
         }
         else { setState(() => numSeconds--); }
       },
@@ -162,7 +167,7 @@ class _MainAppState extends State<MainApp> {
     return Container();
   }
 
-  List<PopupMenuItem<String>> getAppBarActions() {
+  List<PopupMenuItem<String>> getAppBarActions(BuildContext buildContext) {
     return [
       if (boardString == '' || isSearchAvailable) PopupMenuItem<String>(
         value: 'New Game',
@@ -174,7 +179,7 @@ class _MainAppState extends State<MainApp> {
             boardString = generatedString;
           }
           int dimension = sqrt(max(generatedString.replaceAll('QU', 'Q').length, 1)).ceil();
-          String toShare = '';
+          String toShare = '\n\n\n';
           for (int i = 0; i < generatedString.length; i++) {
             String letter = generatedString[i];
             if (i < generatedString.length - 1 && generatedString[i] == 'Q' && generatedString[i + 1] == 'U') {
@@ -184,12 +189,34 @@ class _MainAppState extends State<MainApp> {
             toShare += EMOJI_ICONS[letter]!;
             if ((i + 1) % dimension == 0 && i < generatedString.length - 1) { toShare += '\n\n'; }
           }
-          await Share.shareWithResult(toShare);
+          await Share.shareWithResult(toShare, subject: 'Boggle Board');
           boardStringController.text = boardString;
-          startTimer();
+          // ignore: use_build_context_synchronously
+          startTimer(buildContext);
           setState(() {});
         },
         child: const Text('New Game'),
+      ),
+      PopupMenuItem<String>(
+        value: 'Min Word Length',
+        child: Text('Min Word Length: $minWordLength'),
+        onTap: () => WidgetsBinding.instance.addPostFrameCallback((_) => showDialog(
+          context: buildContext,
+          builder: (BuildContext dialogContext) => MinWordLengthDialog(
+            minWordLength,
+            (value) async {
+              minWordLength = value;
+              if (words != null) {
+                board = Board(boardString, minWordLength);
+                words = board!.search(dictionary);
+              }
+              setState(() {});
+        
+              prefs ??= await SharedPreferences.getInstance();
+              prefs!.setInt('minWordLength', minWordLength);
+            },
+          )),
+        ),
       ),
       if (removedWords?.isNotEmpty ?? false) const PopupMenuItem<String>(
         value: 'Removed Words',
@@ -205,7 +232,6 @@ class _MainAppState extends State<MainApp> {
       workingWords = [...words!.toList()];
       workingWords.removeWhere((word) => removedWords?.contains(word) ?? false);
     }
-    List<PopupMenuItem<String>> appBarActions = getAppBarActions();
 
     return MaterialApp(
       theme: ThemeData(
@@ -221,6 +247,7 @@ class _MainAppState extends State<MainApp> {
       ),
       home: Builder(
         builder: (builderContext) {
+          List<PopupMenuItem<String>> appBarActions = getAppBarActions(builderContext);
           return Scaffold(
             appBar: AppBar(
               elevation: 0,
@@ -242,6 +269,13 @@ class _MainAppState extends State<MainApp> {
                   children: [
                     Row(
                         children: [
+                          TextButton(
+                            onPressed: null,
+                            child: Text(
+                              timer != null ? '${numSeconds ~/ 60}:${(numSeconds % 60).toString().padLeft(2, '0')}' : '    ',
+                              style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.w600),
+                            ),
+                          ),
                           Expanded(
                             child: TextField(
                               textAlign: TextAlign.center,
@@ -277,7 +311,8 @@ class _MainAppState extends State<MainApp> {
                             onPressed: () {
                               boardString = generate();
                               boardStringController.text = boardString;
-                              myWordsController.text = '';
+                              myWordsController.clear();
+                              words = null;
                               setState(() {});
                             },
                             icon: const Icon(Icons.restart_alt_rounded),
@@ -285,42 +320,6 @@ class _MainAppState extends State<MainApp> {
                         ],
                       ),
                       Expanded(child: buildBoard()),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          timer != null
-                            ? Text('${numSeconds ~/ 60}:${(numSeconds % 60).toString().padLeft(2, '0')}')
-                            : Container(),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              const Text('Min word length: '),
-                              DropdownButton(
-                                value: minWordLength,
-                                items: const [
-                                  DropdownMenuItem(value: 1, child: Text('1')),
-                                  DropdownMenuItem(value: 2, child: Text('2')),
-                                  DropdownMenuItem(value: 3, child: Text('3')),
-                                  DropdownMenuItem(value: 4, child: Text('4')),
-                                  DropdownMenuItem(value: 5, child: Text('5')),
-                                  DropdownMenuItem(value: 6, child: Text('6')),
-                                ],
-                                onChanged: (value) async {
-                                  minWordLength = value ?? MIN_WORD_LENGTH_DEFAULT;
-                                  if (words != null) {
-                                    board = Board(boardString, minWordLength);
-                                    words = board!.search(dictionary);
-                                  }
-                                  setState(() {});
-                            
-                                  prefs ??= await SharedPreferences.getInstance();
-                                  prefs!.setInt('minWordLength', minWordLength);
-                                },
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
                       Expanded(child: buildTabs(builderContext, workingWords)),
                   ]
                 ),
@@ -346,7 +345,7 @@ class _MainAppState extends State<MainApp> {
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight;
 
-        return Container(
+        return SizedBox(
           height: availableHeight,
           width: availableHeight,
           child: GridView.count(
@@ -380,9 +379,11 @@ class _MainAppState extends State<MainApp> {
             child: TabBarView(
               children: [
                 SingleChildScrollView(
+                  key: const PageStorageKey('myWords'),
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     child: TextField(
+                      key: const PageStorageKey('myWordsTextField'),
                       controller: myWordsController,
                       keyboardType: TextInputType.multiline,
                       minLines: 2,
@@ -390,11 +391,17 @@ class _MainAppState extends State<MainApp> {
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                         hintText: 'Enter words...',
+                        isDense: true,
                       ),
+                      enableSuggestions: false,
+                      autocorrect: false,
                     ),
                   ),
                 ),
-                SingleChildScrollView(child: buildAllWordsTab(buildContext, workingWords)),
+                SingleChildScrollView(
+                  key: const PageStorageKey('allWords'),
+                  child: buildAllWordsTab(buildContext, workingWords),
+                ),
               ],
             ),
           ),
