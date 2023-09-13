@@ -29,6 +29,7 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      title: Text(widget.word),
       content: definition != null
         ? Text(definition!)
         : const Row(

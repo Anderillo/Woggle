@@ -25,7 +25,7 @@ class MainApp extends StatefulWidget {
 
 const int MIN_WORD_LENGTH_DEFAULT = 3;
 const int NUM_SECONDS = 180;
-class _MainAppState extends State<MainApp> {
+class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
   Dictionary dictionary = Dictionary();
   bool isDictionaryLoaded = false;
   Board? board;
@@ -42,10 +42,17 @@ class _MainAppState extends State<MainApp> {
   Timer? timer;
   int numSeconds = NUM_SECONDS;
 
+  late TabController tabController;
+
   @override
   void initState() {
     super.initState();
     init();
+    tabController = TabController(
+      initialIndex: 0,
+      length: 2,
+      vsync: this,
+    )..addListener(() => FocusManager.instance.primaryFocus?.unfocus());
   }
 
   Future<void> init() async {
@@ -366,48 +373,47 @@ class _MainAppState extends State<MainApp> {
   }
 
   Widget buildTabs(BuildContext buildContext, List<String>? workingWords) {
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          TabBar(
-            tabs: [
-              const Tab(text: 'My Words'),
-              Tab(text: 'All Words${workingWords == null ? '' : ' (${workingWords.length})'}'),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                SingleChildScrollView(
-                  key: const PageStorageKey('myWords'),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    child: TextField(
-                      key: const PageStorageKey('myWordsTextField'),
-                      controller: myWordsController,
-                      keyboardType: TextInputType.multiline,
-                      minLines: 2,
-                      maxLines: null,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'Enter words...',
-                        isDense: true,
-                      ),
-                      enableSuggestions: false,
-                      autocorrect: false,
+    return Column(
+      children: [
+        TabBar(
+          controller: tabController,
+          tabs: [
+            const Tab(text: 'My Words'),
+            Tab(text: 'All Words${workingWords == null ? '' : ' (${workingWords.length})'}'),
+          ],
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: tabController,
+            children: [
+              SingleChildScrollView(
+                key: const PageStorageKey('myWords'),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  child: TextField(
+                    key: const PageStorageKey('myWordsTextField'),
+                    controller: myWordsController,
+                    keyboardType: TextInputType.multiline,
+                    minLines: 2,
+                    maxLines: null,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Enter words...',
+                      isDense: true,
                     ),
+                    enableSuggestions: false,
+                    autocorrect: false,
                   ),
                 ),
-                SingleChildScrollView(
-                  key: const PageStorageKey('allWords'),
-                  child: buildAllWordsTab(buildContext, workingWords),
-                ),
-              ],
-            ),
+              ),
+              SingleChildScrollView(
+                key: const PageStorageKey('allWords'),
+                child: buildAllWordsTab(buildContext, workingWords),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
