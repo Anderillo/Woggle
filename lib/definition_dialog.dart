@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class DefinitionDialog extends StatefulWidget {
   final String word;
@@ -37,6 +38,26 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [CircularProgressIndicator()],
         ),
+      actions: [
+        TextButton(
+          onPressed: () async {
+            final Uri url = Uri.parse('https://www.dictionary.com/browse/${widget.word}');
+            if (!await launchUrl(url)) {
+              // ignore: use_build_context_synchronously
+              Navigator.pop(context);
+              SnackBar snackBar = SnackBar(
+                content: Text('Could not launch Dictionary.com for "${widget.word}"'),
+              );
+              // ignore: use_build_context_synchronously
+              ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            }
+          },
+          child: Text('Dictionary.com', style: TextStyle(color: Theme.of(context).colorScheme.secondary),),
+        ),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+      ],
+      actionsAlignment: MainAxisAlignment.spaceBetween,
+      actionsPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
     );
   }
 }
