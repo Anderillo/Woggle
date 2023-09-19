@@ -30,9 +30,10 @@ class _RemovedWordsPageState extends State<RemovedWordsPage> {
                   label: Text(word),
                   deleteIcon: Icon(
                     Icons.rotate_left_rounded,
-                    color: Theme.of(context).disabledColor,
+                    color: Theme.of(context).canvasColor,
                   ),
                   onDeleted: () => widget.unRemove(word),
+                  backgroundColor: Colors.grey[700],
                 ),
               )).toList(),
             ),

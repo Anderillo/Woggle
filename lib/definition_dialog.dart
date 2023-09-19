@@ -52,7 +52,7 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
               ScaffoldMessenger.of(context).showSnackBar(snackBar);
             }
           },
-          child: Text('Dictionary.com', style: TextStyle(color: Theme.of(context).colorScheme.secondary),),
+          child: const Text('Dictionary.com'),
         ),
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
       ],

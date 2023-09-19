@@ -1,14 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:boggle_solver/board/board.dart';
 import 'package:boggle_solver/board/dice.dart';
 import 'package:boggle_solver/definition_dialog.dart';
 import 'package:boggle_solver/dictionary/dictionary.dart';
+import 'package:boggle_solver/found_word.dart';
 import 'package:boggle_solver/min_word_length_dialog.dart';
 import 'package:boggle_solver/removed_words_page.dart';
 import 'package:boggle_solver/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
+import 'package:http/http.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -43,6 +47,9 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
   int numSeconds = NUM_SECONDS;
 
   late TabController tabController;
+  bool userIsFindingWords = true;
+  List<FoundWord>? verifiedWords;
+  bool hasUnRemovedWord = false;
 
   @override
   void initState() {
@@ -52,7 +59,10 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
       initialIndex: 0,
       length: 2,
       vsync: this,
-    )..addListener(() => FocusManager.instance.primaryFocus?.unfocus());
+    )..addListener(() {
+      FocusManager.instance.primaryFocus?.unfocus();
+      setState(() {});
+    });
   }
 
   Future<void> init() async {
@@ -119,6 +129,8 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
   String generate() {
     FocusManager.instance.primaryFocus?.unfocus();
     words = null;
+    userIsFindingWords = true;
+    verifiedWords = null;
     return dice.roll();
   }
 
@@ -126,6 +138,154 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
     return const TextField(
       keyboardType: TextInputType.multiline,
       maxLines: 12,
+    );
+  }
+
+  Widget buildChipAction(BuildContext buildContext, IconData icon, Function() onTap) {
+    double iconSize = 22;
+    return InkWell(
+      radius: iconSize * 0.45,
+      onTap: onTap,
+      child: Icon(
+        icon,
+        size: iconSize,
+        color: Theme.of(buildContext).canvasColor,
+      ),
+    );
+  }
+
+  Widget buildWordChip(BuildContext buildContext, FoundWord word) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: ElevatedButton(
+        onPressed: () => showDialog(
+          context: buildContext,
+          builder: (BuildContext dialogContext) => DefinitionDialog(word.word),
+        ),
+        onLongPress: word.state == null || word.state == FoundWordState.IS_POINTS || word.state == FoundWordState.IS_NOT_POINTS ? () {
+          showModalBottomSheet(context: buildContext, builder: (BuildContext modalContext) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextButton(
+                  child: const Text('Mark as fake word'),
+                  onPressed: () {
+                    setState(() => word.setState(FoundWordState.IS_NOT_WORD));
+                    if (dictionary.hasWord(word.word).isWord) { removeWord(word.word); }
+                    Navigator.pop(modalContext);
+                  },
+                ),
+              ]
+            );
+          });
+        } : null,
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: word.getColor() ?? Colors.grey[700],
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.0)),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${word.word}${word.state == FoundWordState.IS_POINTS ? ': ${word.numPoints}' : ''}',
+              style: TextStyle(
+                color: Theme.of(buildContext).textTheme.bodyMedium?.color,
+                decoration: word.state == FoundWordState.IS_NOT_POINTS ? TextDecoration.lineThrough : null,
+                decorationThickness: 2,
+              ),
+            ),
+            const SizedBox(width: 4),
+            if (word.state == FoundWordState.IS_POINTS || word.state == FoundWordState.IS_NOT_POINTS) ...[
+              const SizedBox(width: 4),
+              buildChipAction(
+                buildContext,
+                Icons.close_rounded,
+                () => setState(() => word.setState(null)),
+              ),
+            ],
+            if (word.state == null) ...[
+              const SizedBox(width: 4),
+              buildChipAction(
+                buildContext,
+                Icons.remove_done_rounded,
+                () => setState(() => word.setState(FoundWordState.IS_NOT_POINTS)),
+              ),
+              const SizedBox(width: 4),
+              buildChipAction(
+                buildContext,
+                Icons.done_all_rounded,
+                () => setState(() => word.setState(FoundWordState.IS_POINTS)),
+              ),
+            ],
+            if (word.state == FoundWordState.IS_NOT_WORD) ...[
+              const SizedBox(width: 4),
+              buildChipAction(
+                buildContext,
+                Icons.keyboard_capslock_rounded,
+                () {
+                  setState(() => word.setState(null));
+                  if (removedWords?.contains(word.word) ?? false) { unRemoveWord(word.word); }
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildVerifiedWords(BuildContext buildContext) {
+    if (verifiedWords == null) { return Container(); }
+
+    verifiedWords!.sort((word1, word2) {
+      if (word1.state != word2.state) {
+        if (word1.state == null) { return -1; }
+        else if (word2.state == null) { return 1; }
+        else if (word1.state == FoundWordState.IS_POINTS) { return -1; }
+        else if (word2.state == FoundWordState.IS_POINTS) { return 1; }
+        else if (word1.state == FoundWordState.IS_NOT_POINTS) { return -1; }
+        else if (word2.state == FoundWordState.IS_NOT_POINTS) { return 1; }
+        else if (word1.state == FoundWordState.IS_NOT_WORD) { return -1; }
+        else if (word2.state == FoundWordState.IS_NOT_WORD) { return 1; }
+        else if (word1.state == FoundWordState.IS_NOT_FOUND) { return -1; }
+        else if (word2.state == FoundWordState.IS_NOT_FOUND) { return 1; }
+        else if (word1.state == FoundWordState.TOO_SHORT) { return -1; }
+        else if (word2.state == FoundWordState.TOO_SHORT) { return 1; }
+      }
+      return word1.word.compareTo(word2.word);
+    });
+    int index = verifiedWords!.indexWhere((word) => [FoundWordState.IS_NOT_WORD, FoundWordState.IS_NOT_FOUND, FoundWordState.TOO_SHORT].contains(word.state));
+    if (index < 0) { index = verifiedWords!.length; }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        Wrap(children: verifiedWords!.sublist(0, index).map((word) => buildWordChip(buildContext, word)).toList()),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Total points: ${verifiedWords!.fold(0, (total, word) => total += (word.numPoints == null || word.numPoints == -1 ? 0 : word.numPoints)!.toInt()).toString()}',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            if (words != null && words!.isNotEmpty) Text(
+              '${(verifiedWords!.sublist(0, index).length / words!.length * 100).toStringAsFixed(1)}% of all words',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+        const Divider(),
+        Wrap(children: verifiedWords!.sublist(index).map((word) => buildWordChip(buildContext, word)).toList()),
+        const SizedBox(height: kFloatingActionButtonMargin + 62,),
+      ],
     );
   }
 
@@ -165,9 +325,10 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
             ),
             deleteIcon: Icon(
               Icons.close_rounded,
-              color: removedWords != null ? Theme.of(context).disabledColor : Theme.of(context).dividerColor,
+              color: removedWords != null ? Theme.of(buildContext).canvasColor : Theme.of(context).dividerColor,
             ),
             onDeleted: () => removeWord(word),
+            backgroundColor: Colors.grey[700],
           ),
         )).toList(),
       );
@@ -214,16 +375,28 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
             minWordLength,
             (value) async {
               minWordLength = value;
-              if (words != null) {
-                board = Board(boardString, minWordLength);
-                words = board!.search(dictionary);
-              }
               setState(() {});
         
               prefs ??= await SharedPreferences.getInstance();
               prefs!.setInt('minWordLength', minWordLength);
             },
-          )),
+          )).then((value) {
+            if (words != null) {
+              board = Board(boardString, minWordLength);
+              words = board!.search(dictionary);
+            }
+            if (!userIsFindingWords && verifiedWords != null) {
+              for (var verifiedWord in verifiedWords!) {
+                if (verifiedWord.state == null && verifiedWord.word.length < minWordLength) {
+                  verifiedWord.setState(FoundWordState.TOO_SHORT);
+                }
+                else if (verifiedWord.state == FoundWordState.TOO_SHORT && verifiedWord.word.length >= minWordLength) {
+                  verifiedWord.setState(null);
+                }
+              }
+            }
+            setState(() {});
+          }),
         ),
       ),
       if (removedWords?.isNotEmpty ?? false) const PopupMenuItem<String>(
@@ -231,6 +404,54 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
         child: Text('Removed Words'),
       ),
     ];
+  }
+
+  Future<void> verifyWords(BuildContext buildContext) async {
+    Loader.show(
+      buildContext,
+      progressIndicator: const CircularProgressIndicator(),
+      overlayColor: Theme.of(context).canvasColor.withOpacity(0.2),
+    );
+    List<String> myWords = myWordsController.text.trim().split('\n');
+    List<FoundWord> foundWords = [];
+    Dictionary tempDictionary = Dictionary();
+    for (int i = 0; i < myWords.length; i++) {
+      List<String> wordsToAdd = [];
+
+      String currentWord = myWords[i];
+      while (currentWord.split('/').length > 1) {
+        wordsToAdd.add(currentWord.split('/')[0].trim());
+        currentWord = currentWord.replaceFirst('/', '');
+      }
+      wordsToAdd.add(currentWord.trim());
+
+      for (String word in wordsToAdd) {
+        foundWords.add(FoundWord(word));
+        tempDictionary.addWord(word);
+      }
+    }
+    Set<String> searchedWords = Board(boardString, 1).search(tempDictionary);
+    for (int i = 0; i < foundWords.length; i++) {
+      if (!searchedWords.contains(foundWords[i].word)) {
+        foundWords[i].setState(FoundWordState.IS_NOT_FOUND);
+      }
+      else {
+        Response definition = await get(Uri.parse('https://api.dictionaryapi.dev/api/v2/entries/en/${foundWords[i].word}'));
+        try { jsonDecode(definition.body)[0]['meanings'][0]['definitions'][0]['definition']; }
+        catch (e) { foundWords[i].setState(FoundWordState.IS_NOT_WORD); }
+      }
+      if (foundWords[i].state == null && foundWords[i].word.length < minWordLength) {
+        foundWords[i].setState(FoundWordState.TOO_SHORT);
+      }
+    }
+
+    if (words == null) {
+      board = Board(boardString, minWordLength);
+      words = board!.search(dictionary);
+    }
+
+    setState(() => verifiedWords = foundWords);
+    Loader.hide();
   }
 
   @override
@@ -264,7 +485,20 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
                 PopupMenuButton<String>(
                   enabled: appBarActions.isNotEmpty,
                   onSelected: (String result) {
-                    if (result == 'Removed Words') { Navigator.push(builderContext, MaterialPageRoute(builder: (context) => RemovedWordsPage(removedWords!, unRemoveWord))); }
+                    if (result == 'Removed Words') {
+                      Navigator.push(builderContext, MaterialPageRoute(builder: (context) => RemovedWordsPage(
+                        removedWords!,
+                        (String word) {
+                          unRemoveWord(word);
+                          hasUnRemovedWord = true;
+                        }))
+                      ).then((value) {
+                        if (!userIsFindingWords && hasUnRemovedWord) {
+                          verifyWords(builderContext);
+                          hasUnRemovedWord = false;
+                        }
+                      });
+                    }
                   },
                   itemBuilder: (BuildContext context) => appBarActions,
                 ),
@@ -302,6 +536,8 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
                                       words = null;
                                       timer?.cancel();
                                       timer = null;
+                                      userIsFindingWords = true;
+                                      verifiedWords = null;
                                     });
                                   },
                                   icon: const Icon(Icons.clear),
@@ -320,10 +556,9 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
                               boardString = generate();
                               boardStringController.text = boardString;
                               myWordsController.clear();
-                              words = null;
                               setState(() {});
                             },
-                            icon: const Icon(Icons.restart_alt_rounded),
+                            icon: const Icon(Icons.casino_rounded),
                           ),
                         ],
                       ),
@@ -333,6 +568,17 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
                 ),
               ),
             ),
+            floatingActionButton: myWordsController.text.isNotEmpty && MediaQuery.of(context).viewInsets.bottom == 0 && tabController.index == 0 ? FloatingActionButton(
+              elevation: 0,
+              onPressed: userIsFindingWords ? () {
+                verifyWords(builderContext);
+                setState(() => userIsFindingWords = false);
+              } : () {
+                verifiedWords = null;
+                setState(() => userIsFindingWords = true);
+              },
+              child: Icon(userIsFindingWords ? Icons.check_rounded : Icons.edit_outlined),
+            ) : null,
           );
         }
       ),
@@ -388,12 +634,13 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
             children: [
               SingleChildScrollView(
                 key: const PageStorageKey('myWords'),
-                child: Container(
+                child: userIsFindingWords ? Container(
                   padding: const EdgeInsets.all(16),
                   child: TextField(
                     key: const PageStorageKey('myWordsTextField'),
                     controller: myWordsController,
                     keyboardType: TextInputType.multiline,
+                    onChanged: (String word) => setState(() {}),
                     minLines: 2,
                     maxLines: null,
                     decoration: const InputDecoration(
@@ -404,7 +651,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
                     enableSuggestions: false,
                     autocorrect: false,
                   ),
-                ),
+                ) : buildVerifiedWords(buildContext),
               ),
               SingleChildScrollView(
                 key: const PageStorageKey('allWords'),
