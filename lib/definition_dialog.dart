@@ -1,7 +1,8 @@
-import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
 
+import 'package:boggle_solver/utils.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DefinitionDialog extends StatefulWidget {
@@ -18,12 +19,15 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
   @override
   void initState() {
     super.initState();
-    get(Uri.parse('https://api.dictionaryapi.dev/api/v2/entries/en/${widget.word}')).then((Response definition) {
+    getDefinition(widget.word).then((String definition) {
       if (!mounted) { return; }
-      setState(() {
-        try { this.definition = jsonDecode(definition.body)[0]['meanings'][0]['definitions'][0]['definition']; }
-        catch (e) { this.definition = 'Sorry, no definition found.'; }
-      });
+      setState(() => this.definition = definition);
+    }).catchError((error) {
+      String? message;
+      if (!mounted) { return; }
+      if (error is TimeoutException) { message = 'The request timed out.'; }
+      else if (error is SocketException) { message = 'Internet connection error.'; }
+      setState(() => definition = message ?? 'Sorry, no definition found.');
     });
   }
 

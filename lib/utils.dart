@@ -6,6 +6,7 @@ import 'package:encrypt/encrypt.dart';
 import 'package:flutter/material.dart' hide Key;
 import 'package:flutter/services.dart';
 import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
+import 'package:http/http.dart';
 
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override
@@ -15,6 +16,11 @@ class UpperCaseTextFormatter extends TextInputFormatter {
       selection: newValue.selection,
     );
   }
+}
+
+Future<String> getDefinition(String word) async {
+  Response definition = await get(Uri.parse('https://api.dictionaryapi.dev/api/v2/entries/en/$word')).timeout(const Duration(seconds: 3));
+  return jsonDecode(definition.body)[0]['meanings'][0]['definitions'][0]['definition'];
 }
 
 void showLoader(BuildContext context) {

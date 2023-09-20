@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:boggle_solver/board/board.dart';
@@ -12,7 +12,6 @@ import 'package:boggle_solver/min_word_length_dialog.dart';
 import 'package:boggle_solver/removed_words_page.dart';
 import 'package:boggle_solver/utils.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -489,13 +488,14 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
         foundWords[i].setState(FoundWordState.IS_NOT_FOUND);
       }
       else {
-        Response definition = await get(Uri.parse('https://api.dictionaryapi.dev/api/v2/entries/en/${foundWords[i].word}'));
-        try { jsonDecode(definition.body)[0]['meanings'][0]['definitions'][0]['definition']; }
-        catch (e) { foundWords[i].setState(FoundWordState.IS_NOT_WORD); }
+        await getDefinition(foundWords[i].word).then((String definition) {}).catchError((error) {
+          if (error is TimeoutException || error is SocketException) {
+            if (!dictionary.hasWord(foundWords[i].word).isWord) { foundWords[i].setState(FoundWordState.IS_NOT_WORD); }
+          }
+          else { foundWords[i].setState(FoundWordState.IS_NOT_WORD); }
+        });
       }
-      if (foundWords[i].state == null && foundWords[i].word.length < minWordLength) {
-        foundWords[i].setState(FoundWordState.TOO_SHORT);
-      }
+      if (foundWords[i].state == null && foundWords[i].word.length < minWordLength) { foundWords[i].setState(FoundWordState.TOO_SHORT); }
     }
 
     if (words == null) {
