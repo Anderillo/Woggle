@@ -7,11 +7,11 @@ import 'package:boggle_solver/board/dice.dart';
 import 'package:boggle_solver/definition_dialog.dart';
 import 'package:boggle_solver/dictionary/dictionary.dart';
 import 'package:boggle_solver/found_word.dart';
+import 'package:boggle_solver/join_game_dialog.dart';
 import 'package:boggle_solver/min_word_length_dialog.dart';
 import 'package:boggle_solver/removed_words_page.dart';
 import 'package:boggle_solver/utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:http/http.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -336,35 +336,92 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
     return Container();
   }
 
+  Future<void> startGame(BuildContext buildContext, {Function(String)? shareAction, String? existingBoardString}) async {
+    String generatedString = existingBoardString ?? generate();
+    boardString = generatedString;
+    if (shareAction != null) { await shareAction(generatedString); }
+    boardStringController.text = boardString;
+    // ignore: use_build_context_synchronously
+    startTimer(buildContext);
+    setState(() {});
+  }
+
   List<PopupMenuItem<String>> getAppBarActions(BuildContext buildContext) {
     return [
-      if (boardString == '' || isSearchAvailable) PopupMenuItem<String>(
+      PopupMenuItem<String>(
         value: 'New Game',
         onTap: () async {
           FocusManager.instance.primaryFocus?.unfocus();
-          String generatedString = boardString;
-          if (generatedString == '') {
-            generatedString = generate();
-            boardString = generatedString;
-          }
-          int dimension = sqrt(max(generatedString.replaceAll('QU', 'Q').length, 1)).ceil();
-          String toShare = '\n\n\n';
-          for (int i = 0; i < generatedString.length; i++) {
-            String letter = generatedString[i];
-            if (i < generatedString.length - 1 && generatedString[i] == 'Q' && generatedString[i + 1] == 'U') {
-              letter += generatedString[i + 1];
-              generatedString = generatedString.substring(0, i + 1) + generatedString.substring(i + 2);
-            }
-            toShare += EMOJI_ICONS[letter]!;
-            if ((i + 1) % dimension == 0 && i < generatedString.length - 1) { toShare += '\n\n'; }
-          }
-          await Share.shareWithResult(toShare, subject: 'Boggle Board');
-          boardStringController.text = boardString;
-          // ignore: use_build_context_synchronously
-          startTimer(buildContext);
-          setState(() {});
+          WidgetsBinding.instance.addPostFrameCallback((_) => showDialog(
+            context: buildContext,
+            builder: (BuildContext dialogContext) {
+              return AlertDialog(
+                title: const Text('Start game with'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.people_rounded),
+                      title: const Text('Boggle Solver users'),
+                      onTap: () {
+                        Navigator.pop(dialogContext);
+                        startGame(buildContext, shareAction: (String generatedString) async {
+                          String toShare = await boardSecrets(generatedString, encrypt: true);
+                          await Share.shareWithResult(toShare, subject: 'Boggle Board');
+                        });
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.person_outline_rounded),
+                      title: const Text('Non Boggle Solver users'),
+                      onTap: () {
+                        Navigator.pop(dialogContext);
+                        startGame(buildContext, shareAction: (String generatedString) async {
+                          String toShare = '\n\n\n${convertStringToEmojis(generatedString)}';
+                          await Share.shareWithResult(toShare, subject: 'Boggle Board');
+                        });
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.diversity_3_rounded),
+                      title: const Text('Mixed users'),
+                      onTap: () async {
+                        Navigator.pop(dialogContext);
+                        startGame(buildContext, shareAction: (String generatedString) async {
+                          String toShareEncrypted = await boardSecrets(generatedString, encrypt: true);
+                          await Share.shareWithResult(toShareEncrypted, subject: 'Boggle Board');
+                          String toShare = '\n\n\n${convertStringToEmojis(generatedString)}';
+                          await Share.shareWithResult(toShare, subject: 'Boggle Board');
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ));
         },
         child: const Text('New Game'),
+      ),
+      PopupMenuItem<String>(
+        value: 'Join Game',
+        onTap: () async {
+          FocusManager.instance.primaryFocus?.unfocus();
+          WidgetsBinding.instance.addPostFrameCallback((_) => showDialog(
+            context: buildContext,
+            builder: (BuildContext dialogContext) => JoinGameDialog((String decryptedString) => startGame(buildContext, existingBoardString: decryptedString)),
+          ));
+        },
+        child: const Text('Join Game'),
+      ),
+      if (boardString != '') PopupMenuItem<String>(
+        value: 'Share Board',
+        onTap: () async {
+          FocusManager.instance.primaryFocus?.unfocus();
+          String toShare = '\n\n\n${convertStringToEmojis(boardString)}';
+          await Share.shareWithResult(toShare, subject: 'Boggle Board');
+        },
+        child: const Text('Share Board'),
       ),
       PopupMenuItem<String>(
         value: 'Min Word Length',
@@ -407,11 +464,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
   }
 
   Future<void> verifyWords(BuildContext buildContext) async {
-    Loader.show(
-      buildContext,
-      progressIndicator: const CircularProgressIndicator(),
-      overlayColor: Theme.of(context).canvasColor.withOpacity(0.2),
-    );
+    showLoader(buildContext);
     List<String> myWords = myWordsController.text.trim().split('\n');
     List<FoundWord> foundWords = [];
     Dictionary tempDictionary = Dictionary();
@@ -451,7 +504,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
     }
 
     setState(() => verifiedWords = foundWords);
-    Loader.hide();
+    hideLoader();
   }
 
   @override
@@ -558,7 +611,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
                               myWordsController.clear();
                               setState(() {});
                             },
-                            icon: const Icon(Icons.casino_rounded),
+                            icon: const Icon(Icons.restart_alt_rounded),
                           ),
                         ],
                       ),

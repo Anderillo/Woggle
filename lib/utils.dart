@@ -1,4 +1,11 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:boggle_solver/board/dice.dart';
+import 'package:encrypt/encrypt.dart';
+import 'package:flutter/material.dart' hide Key;
 import 'package:flutter/services.dart';
+import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override
@@ -8,4 +15,37 @@ class UpperCaseTextFormatter extends TextInputFormatter {
       selection: newValue.selection,
     );
   }
+}
+
+void showLoader(BuildContext context) {
+  Loader.show(
+    context,
+    progressIndicator: const CircularProgressIndicator(),
+    overlayColor: Theme.of(context).canvasColor.withOpacity(0.2),
+  );
+}
+void hideLoader() => Loader.hide();
+
+String convertStringToEmojis(String boardString) {
+  int dimension = sqrt(max(boardString.replaceAll('QU', 'Q').length, 1)).ceil();
+  String emojiString = '';
+  for (int i = 0; i < boardString.length; i++) {
+    String letter = boardString[i];
+    if (i < boardString.length - 1 && boardString[i] == 'Q' && boardString[i + 1] == 'U') {
+      letter += boardString[i + 1];
+      boardString = boardString.substring(0, i + 1) + boardString.substring(i + 2);
+    }
+    emojiString += EMOJI_ICONS[letter]!;
+    if ((i + 1) % dimension == 0 && i < boardString.length - 1) { emojiString += '\n\n'; }
+  }
+  return emojiString;
+}
+
+Future<String> boardSecrets(String boardString, {required bool encrypt}) async {
+  Map<String, dynamic> secrets = json.decode(await rootBundle.loadString('assets/secrets.json'));
+  Key key = Key.fromBase64(secrets['encryption_key']);
+  IV iv = IV.fromBase64(secrets['encryption_iv']);
+  Encrypter encrypter = Encrypter(AES(key));
+  if (!encrypt) { return encrypter.decrypt(Encrypted.fromBase64(boardString), iv: iv); }
+  return encrypter.encrypt(boardString, iv: iv).base64;
 }
