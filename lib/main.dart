@@ -693,7 +693,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
             children: letters.map((letter) => Center(
               child: Text(
                 letter,
-                style: TextStyle(fontSize: MediaQuery.of(context).size.height / (dimension * 6.3), fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: MediaQuery.of(context).size.height / (dimension * 7), fontWeight: FontWeight.bold),
               ),
             )).toList(),
           ),
