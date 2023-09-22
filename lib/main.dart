@@ -130,8 +130,9 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
     }
   }
 
-  String generate({bool shouldUpdateUI = false}) {
+  String generate(BuildContext buildContext, {bool shouldUpdateUI = false}) {
     FocusManager.instance.primaryFocus?.unfocus();
+    clearGame();
     words = null;
     userIsFindingWords = true;
     verifiedWords = null;
@@ -141,6 +142,9 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
       boardString = generated;
       boardStringController.text = boardString;
       myWordsController.clear();
+      numSeconds = NUM_SECONDS;
+      startTimer(buildContext);
+      timer?.cancel();
       setState(() {});
     }
     return generated;
@@ -372,8 +376,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
   }
 
   Future<void> startGame(BuildContext buildContext, {Function(String)? shareAction, String? existingBoardString}) async {
-    clearGame();
-    String generatedString = existingBoardString ?? generate();
+    String generatedString = existingBoardString ?? generate(buildContext);
     if (shareAction != null) { await shareAction(generatedString); }
     boardString = generatedString;
     boardStringController.text = boardString;
@@ -599,7 +602,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
             ),
             body: SafeArea(
               child: Container(
-                padding: const EdgeInsets.only(top: 16, left: 16, right: 16),
+                padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
                 child: Column(
                   children: [
                     Row(
@@ -655,55 +658,55 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
                           ),
                         ),
                         SizedBox(
-                          height: 48,
+                          height: 56,
                           width: 48,
-                          child: InkWell(
-                            customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-                            onTap: () => generate(shouldUpdateUI: true),
-                            onLongPress: () {
-                              showDialog(
-                                context: builderContext,
-                                builder: (BuildContext dialogContext) {
-                                  return AlertDialog(
-                                    title: const Text('Board Dimension'),
-                                    content: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: List.generate(3, (index) => index + 2).map((dimension) {
-                                        return ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            elevation: 0,
-                                            backgroundColor: dimension == boardDimension
-                                              ? Theme.of(context).colorScheme.secondary
-                                              : Theme.of(context).dividerColor,
-                                            foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              IconButton(
+                                onPressed: () => generate(builderContext, shouldUpdateUI: true),
+                                icon: const Icon(Icons.restart_alt_rounded),
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                child: GestureDetector(
+                                  child: Text('${(boardDimension ?? BOARD_DIMENSION_DEFAULT).toString()}x${(boardDimension ?? BOARD_DIMENSION_DEFAULT).toString()}', style: TextStyle(color: Theme.of(context).colorScheme.primary),),
+                                  onTap: () {
+                                    showDialog(
+                                      context: builderContext,
+                                      builder: (BuildContext dialogContext) {
+                                        return AlertDialog(
+                                          title: const Text('Board Dimension'),
+                                          content: Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: List.generate(3, (index) => index + 2).map((dimension) {
+                                              return ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  elevation: 0,
+                                                  backgroundColor: dimension == boardDimension
+                                                    ? Theme.of(context).colorScheme.secondary
+                                                    : Theme.of(context).dividerColor,
+                                                  foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                                                ),
+                                                onPressed: () async {
+                                                  Navigator.pop(dialogContext);
+                                                  boardDimension = dimension;
+                                                  generate(builderContext, shouldUpdateUI: true);
+                                                      
+                                                  prefs ??= await SharedPreferences.getInstance();
+                                                  prefs!.setInt('boardDimension', dimension);
+                                                },
+                                                child: Text('${dimension}x${dimension}'),
+                                              );
+                                            }).toList(),
                                           ),
-                                          onPressed: () async {
-                                            Navigator.pop(dialogContext);
-                                            boardDimension = dimension;
-                                            generate(shouldUpdateUI: true);
-
-                                            prefs ??= await SharedPreferences.getInstance();
-                                            prefs!.setInt('boardDimension', dimension);
-                                          },
-                                          child: Text('${dimension}x${dimension}'),
                                         );
-                                      }).toList(),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                const Icon(Icons.restart_alt_rounded),
-                                Positioned(
-                                  bottom: 6,
-                                  right: 8,
-                                  child: Text((boardDimension ?? BOARD_DIMENSION_DEFAULT).toString(), style: TextStyle(color: Theme.of(context).colorScheme.primary),),
+                                      },
+                                    );
+                                  },
                                 ),
-                              ],
-                            ),
+                              )
+                            ],
                           ),
                         ),
                         SizedBox(height: timerControlIconSize, width: timerControlIconSize),
@@ -774,6 +777,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
             Tab(text: 'All Words${workingWords == null ? '' : ' (${workingWords.length})'}'),
           ],
         ),
+        const SizedBox(height: 8),
         Expanded(
           child: TabBarView(
             controller: tabController,
