@@ -12,7 +12,7 @@ class Die {
 
 class Dice {
   late List<Die> dice;
-  Dice(int dimension) {
+  Dice() {
     dice = [
       Die(['N', 'L', 'N', 'H', 'Z', 'R']),
       Die(['D', 'R', 'Y', 'V', 'E', 'L']),
@@ -33,10 +33,11 @@ class Dice {
     ];
   }
 
-  String roll() {
-    List<int> indexes = List.generate(dice.length, (index) => index);
+  String roll(int dimension) {
+    List<int> indexes = List.generate(min(dimension * dimension, dice.length), (index) => index);
     Random random = Random();
     String result = '';
+    dice.shuffle();
     while (indexes.isNotEmpty) {
       int index = random.nextInt(indexes.length);
       result += dice[indexes[index]].roll();

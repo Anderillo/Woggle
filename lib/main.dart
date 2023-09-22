@@ -30,6 +30,7 @@ class MainApp extends StatefulWidget {
 
 const int MIN_WORD_LENGTH_DEFAULT = 3;
 const int NUM_SECONDS = 180;
+const int BOARD_DIMENSION_DEFAULT = 4;
 class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
   Dictionary dictionary = Dictionary();
   bool isDictionaryLoaded = false;
@@ -51,6 +52,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
   bool userIsFindingWords = true;
   List<FoundWord>? verifiedWords;
   bool hasUnRemovedWord = false;
+  int? boardDimension;
 
   @override
   void initState() {
@@ -67,11 +69,12 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
   }
 
   Future<void> init() async {
-    dice = Dice(4);
+    dice = Dice();
     prefs = await SharedPreferences.getInstance();
     removedWords = {};
     removedWords!.addAll(prefs!.getStringList('removedWords')?.toList() ?? []);
     minWordLength = prefs!.getInt('minWordLength') ?? MIN_WORD_LENGTH_DEFAULT;
+    boardDimension = prefs!.getInt('boardDimension') ?? BOARD_DIMENSION_DEFAULT;
     setState(() {});
     
     // ignore: use_build_context_synchronously
@@ -127,12 +130,20 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
     }
   }
 
-  String generate() {
+  String generate({bool shouldUpdateUI = false}) {
     FocusManager.instance.primaryFocus?.unfocus();
     words = null;
     userIsFindingWords = true;
     verifiedWords = null;
-    return dice.roll();
+    String generated = dice.roll(boardDimension ?? BOARD_DIMENSION_DEFAULT);
+
+    if (shouldUpdateUI) {
+      boardString = generated;
+      boardStringController.text = boardString;
+      myWordsController.clear();
+      setState(() {});
+    }
+    return generated;
   }
 
   Widget buildMyWordsTab() {
@@ -252,12 +263,12 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
         else if (word2.state == FoundWordState.IS_NOT_WORD) { return 1; }
         else if (word1.state == FoundWordState.IS_NOT_FOUND) { return -1; }
         else if (word2.state == FoundWordState.IS_NOT_FOUND) { return 1; }
-        else if (word1.state == FoundWordState.TOO_SHORT) { return -1; }
-        else if (word2.state == FoundWordState.TOO_SHORT) { return 1; }
+        else if (word1.state == FoundWordState.IS_TOO_SHORT) { return -1; }
+        else if (word2.state == FoundWordState.IS_TOO_SHORT) { return 1; }
       }
       return word1.word.compareTo(word2.word);
     });
-    int index = verifiedWords!.indexWhere((word) => [FoundWordState.IS_NOT_WORD, FoundWordState.IS_NOT_FOUND, FoundWordState.TOO_SHORT].contains(word.state));
+    int index = verifiedWords!.indexWhere((word) => [FoundWordState.IS_NOT_WORD, FoundWordState.IS_NOT_FOUND, FoundWordState.IS_TOO_SHORT].contains(word.state));
     if (index < 0) { index = verifiedWords!.length; }
 
     return Column(
@@ -314,24 +325,32 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
     else if (workingWords.isEmpty) { return const Center(child: Text('No words found!'),); }
     else if (workingWords.isNotEmpty) {
       return Wrap(
-        children: workingWords.map((word) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4.0),
-          child: Chip(
-            label: InkWell(
-              onTap: () => showDialog(
-                context: buildContext,
-                builder: (BuildContext dialogContext) => DefinitionDialog(word),
+        children: workingWords.map((word) {
+          FoundWord? foundWord = verifiedWords?.firstWhereOrNull((verifiedWord) => verifiedWord.word == word);
+          Color? backgroundColor = Colors.grey[700];
+          if (foundWord != null) {
+            if (foundWord.state == null || foundWord.state == FoundWordState.IS_POINTS) { backgroundColor = isPointsColor; }
+            else if (foundWord.state == FoundWordState.IS_NOT_POINTS) { backgroundColor = isNotPointsColor; }
+          }
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: Chip(
+              label: InkWell(
+                onTap: () => showDialog(
+                  context: buildContext,
+                  builder: (BuildContext dialogContext) => DefinitionDialog(word),
+                ),
+                child: Text(word),
               ),
-              child: Text(word),
+              deleteIcon: Icon(
+                Icons.close_rounded,
+                color: removedWords != null ? Theme.of(buildContext).canvasColor : Theme.of(context).dividerColor,
+              ),
+              onDeleted: () => removeWord(word),
+              backgroundColor: backgroundColor,
             ),
-            deleteIcon: Icon(
-              Icons.close_rounded,
-              color: removedWords != null ? Theme.of(buildContext).canvasColor : Theme.of(context).dividerColor,
-            ),
-            onDeleted: () => removeWord(word),
-            backgroundColor: Colors.grey[700],
-          ),
-        )).toList(),
+          );
+        }).toList(),
       );
     }
     return Container();
@@ -462,9 +481,9 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
             if (!userIsFindingWords && verifiedWords != null) {
               for (var verifiedWord in verifiedWords!) {
                 if (verifiedWord.state == null && verifiedWord.word.length < minWordLength) {
-                  verifiedWord.setState(FoundWordState.TOO_SHORT);
+                  verifiedWord.setState(FoundWordState.IS_TOO_SHORT);
                 }
-                else if (verifiedWord.state == FoundWordState.TOO_SHORT && verifiedWord.word.length >= minWordLength) {
+                else if (verifiedWord.state == FoundWordState.IS_TOO_SHORT && verifiedWord.word.length >= minWordLength) {
                   verifiedWord.setState(null);
                 }
               }
@@ -515,7 +534,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
           else { foundWord.setState(FoundWordState.IS_NOT_WORD); }
         });
       }
-      if (foundWord.state == null && foundWord.word.length < minWordLength) { foundWord.setState(FoundWordState.TOO_SHORT); }
+      if (foundWord.state == null && foundWord.word.length < minWordLength) { foundWord.setState(FoundWordState.IS_TOO_SHORT); }
     }
 
     if (words == null) {
@@ -635,14 +654,57 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
                             }),
                           ),
                         ),
-                        IconButton(
-                          onPressed: () {
-                            boardString = generate();
-                            boardStringController.text = boardString;
-                            myWordsController.clear();
-                            setState(() {});
-                          },
-                          icon: const Icon(Icons.restart_alt_rounded),
+                        SizedBox(
+                          height: 48,
+                          width: 48,
+                          child: InkWell(
+                            customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+                            onTap: () => generate(shouldUpdateUI: true),
+                            onLongPress: () {
+                              showDialog(
+                                context: builderContext,
+                                builder: (BuildContext dialogContext) {
+                                  return AlertDialog(
+                                    title: const Text('Board Dimension'),
+                                    content: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: List.generate(3, (index) => index + 2).map((dimension) {
+                                        return ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            elevation: 0,
+                                            backgroundColor: dimension == boardDimension
+                                              ? Theme.of(context).colorScheme.secondary
+                                              : Theme.of(context).dividerColor,
+                                            foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                                          ),
+                                          onPressed: () async {
+                                            Navigator.pop(dialogContext);
+                                            boardDimension = dimension;
+                                            generate(shouldUpdateUI: true);
+
+                                            prefs ??= await SharedPreferences.getInstance();
+                                            prefs!.setInt('boardDimension', dimension);
+                                          },
+                                          child: Text('${dimension}x${dimension}'),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                const Icon(Icons.restart_alt_rounded),
+                                Positioned(
+                                  bottom: 6,
+                                  right: 8,
+                                  child: Text((boardDimension ?? BOARD_DIMENSION_DEFAULT).toString(), style: TextStyle(color: Theme.of(context).colorScheme.primary),),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                         SizedBox(height: timerControlIconSize, width: timerControlIconSize),
                       ],

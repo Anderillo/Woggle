@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 enum FoundWordState {
@@ -5,8 +7,15 @@ enum FoundWordState {
   IS_NOT_POINTS,
   IS_NOT_FOUND,
   IS_NOT_WORD,
-  TOO_SHORT
+  IS_TOO_SHORT
 }
+
+
+const Color isPointsColor = Color(0xFF44AF69);
+const Color isNotPointsColor = Color(0xFF7286A0);
+const Color isNotWordColor = Color(0xFFD90368);
+const Color isNotFoundColor = Color(0xFF333138);
+const Color isTooShortColor = Color(0xFF333138);
 
 class FoundWord {
   String word;
@@ -29,18 +38,12 @@ class FoundWord {
 
   Color? getColor() {
     switch (state) {
-      case FoundWordState.IS_POINTS:
-        return const Color(0xFF44AF69);
-      case FoundWordState.IS_NOT_POINTS:
-        return const Color(0xFF7286A0);
-      case FoundWordState.IS_NOT_WORD:
-        return const Color(0xFFD90368);
-      case FoundWordState.IS_NOT_FOUND:
-        return const Color(0xFF333138);
-      case FoundWordState.TOO_SHORT:
-        return const Color(0xFF333138);
-      default:
-        return null;
+      case FoundWordState.IS_POINTS: return isPointsColor;
+      case FoundWordState.IS_NOT_POINTS: return isNotPointsColor;
+      case FoundWordState.IS_NOT_WORD: return isNotWordColor;
+      case FoundWordState.IS_NOT_FOUND: return isNotFoundColor;
+      case FoundWordState.IS_TOO_SHORT: return isTooShortColor;
+      default: return null;
     }
   }
 }
