@@ -481,7 +481,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
 
   Future<void> verifyWords(BuildContext buildContext) async {
     showLoader(buildContext);
-    List<String> myWords = myWordsController.text.trim().split('\n');
+    List<String> myWords = myWordsController.text.trim().toLowerCase().split('\n');
     List<FoundWord> foundWords = [];
     Dictionary tempDictionary = Dictionary();
     for (int i = 0; i < myWords.length; i++) {
@@ -534,6 +534,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
       workingWords.removeWhere((word) => removedWords?.contains(word) ?? false);
     }
 
+    double timerControlIconSize = 14;
     return MaterialApp(
       theme: ThemeData(
         brightness: Brightness.dark,
@@ -584,13 +585,13 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
                     Row(
                       children: [
                         SizedBox(
-                          height: 14,
-                          width: 14,
+                          height: timerControlIconSize,
+                          width: timerControlIconSize,
                           child: IconButton(
-                            iconSize: 14,
+                            iconSize: timerControlIconSize,
                             padding: EdgeInsets.zero,
                             visualDensity: VisualDensity.compact,
-                            splashRadius: 20,
+                            splashRadius: timerControlIconSize * 1.5,
                             icon: Icon(timer?.isActive ?? false ? Icons.pause_rounded : Icons.play_arrow_rounded, color: timer != null ? null : Colors.transparent,),
                             onPressed: timer != null ? () {
                               if (timer?.isActive ?? false) { timer?.cancel(); }
@@ -639,6 +640,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
                           },
                           icon: const Icon(Icons.restart_alt_rounded),
                         ),
+                        SizedBox(height: timerControlIconSize, width: timerControlIconSize),
                       ],
                     ),
                     Expanded(child: buildBoard()),
