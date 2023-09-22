@@ -18,6 +18,7 @@ class _JoinGameDialogState extends State<JoinGameDialog> {
       content: SizedBox(
         width: MediaQuery.of(context).size.width * 0.75,
         child: TextField(
+          autofocus: true,
           controller: textEditingController,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),

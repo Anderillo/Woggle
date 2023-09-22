@@ -11,6 +11,7 @@ import 'package:boggle_solver/join_game_dialog.dart';
 import 'package:boggle_solver/min_word_length_dialog.dart';
 import 'package:boggle_solver/removed_words_page.dart';
 import 'package:boggle_solver/utils.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -72,13 +73,13 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
     minWordLength = prefs!.getInt('minWordLength') ?? MIN_WORD_LENGTH_DEFAULT;
     setState(() {});
     
+    // ignore: use_build_context_synchronously
     String dictionaryFile = await DefaultAssetBundle.of(context).loadString('assets/dictionary.txt');
     for (String word in dictionaryFile.split('\n')) { if (!(removedWords!.contains(word.toLowerCase().trim()))) { dictionary.addWord(word); } }
     setState(() => isDictionaryLoaded = true);
   }
 
   void startTimer(BuildContext buildContext) {
-    setState(() => numSeconds = NUM_SECONDS);
     timer = Timer.periodic(
       const Duration(seconds: 1),
       (Timer timer) {
@@ -214,7 +215,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
               const SizedBox(width: 4),
               buildChipAction(
                 buildContext,
-                Icons.done_all_rounded,
+                Icons.check_rounded,
                 () => setState(() => word.setState(FoundWordState.IS_POINTS)),
               ),
             ],
@@ -335,14 +336,30 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
     return Container();
   }
 
+  void clearGame() {
+    boardStringController.clear();
+    myWordsController.clear();
+    tabController.animateTo(0);
+
+    boardString = '';
+    words = null;
+    timer?.cancel();
+    timer = null;
+    userIsFindingWords = true;
+    verifiedWords = null;
+    board = null;
+    setState(() {});
+  }
+
   Future<void> startGame(BuildContext buildContext, {Function(String)? shareAction, String? existingBoardString}) async {
+    clearGame();
     String generatedString = existingBoardString ?? generate();
-    boardString = generatedString;
     if (shareAction != null) { await shareAction(generatedString); }
+    boardString = generatedString;
     boardStringController.text = boardString;
+    setState(() => numSeconds = NUM_SECONDS);
     // ignore: use_build_context_synchronously
     startTimer(buildContext);
-    setState(() {});
   }
 
   List<PopupMenuItem<String>> getAppBarActions(BuildContext buildContext) {
@@ -478,24 +495,26 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
       wordsToAdd.add(currentWord.trim());
 
       for (String word in wordsToAdd) {
-        foundWords.add(FoundWord(word));
-        tempDictionary.addWord(word);
+        if (foundWords.firstWhereOrNull((foundWord) => foundWord.word == word) == null) {
+          foundWords.add(FoundWord(word));
+          tempDictionary.addWord(word);
+        }
       }
     }
     Set<String> searchedWords = Board(boardString, 1).search(tempDictionary);
-    for (int i = 0; i < foundWords.length; i++) {
-      if (!searchedWords.contains(foundWords[i].word)) {
-        foundWords[i].setState(FoundWordState.IS_NOT_FOUND);
+    for (FoundWord foundWord in foundWords) {
+      if (!searchedWords.contains(foundWord.word)) {
+        foundWord.setState(FoundWordState.IS_NOT_FOUND);
       }
       else {
-        await getDefinition(foundWords[i].word).then((String definition) {}).catchError((error) {
+        await getDefinition(foundWord.word).then((String definition) {}).catchError((error) {
           if (error is TimeoutException || error is SocketException) {
-            if (!dictionary.hasWord(foundWords[i].word).isWord) { foundWords[i].setState(FoundWordState.IS_NOT_WORD); }
+            if (!dictionary.hasWord(foundWord.word).isWord) { foundWord.setState(FoundWordState.IS_NOT_WORD); }
           }
-          else { foundWords[i].setState(FoundWordState.IS_NOT_WORD); }
+          else { foundWord.setState(FoundWordState.IS_NOT_WORD); }
         });
       }
-      if (foundWords[i].state == null && foundWords[i].word.length < minWordLength) { foundWords[i].setState(FoundWordState.TOO_SHORT); }
+      if (foundWord.state == null && foundWord.word.length < minWordLength) { foundWord.setState(FoundWordState.TOO_SHORT); }
     }
 
     if (words == null) {
@@ -563,60 +582,67 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
                 child: Column(
                   children: [
                     Row(
-                        children: [
-                          TextButton(
-                            onPressed: null,
-                            child: Text(
-                              timer != null ? '${numSeconds ~/ 60}:${(numSeconds % 60).toString().padLeft(2, '0')}' : '    ',
-                              style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          Expanded(
-                            child: TextField(
-                              textAlign: TextAlign.center,
-                              controller: boardStringController,
-                              inputFormatters: [UpperCaseTextFormatter()],
-                              textCapitalization: TextCapitalization.characters,
-                              decoration: InputDecoration(
-                                hintText: 'Enter the board',
-                                suffixIcon: IconButton(
-                                  onPressed: () {
-                                    FocusManager.instance.primaryFocus?.unfocus();
-                                    boardStringController.clear();
-                                    myWordsController.clear();
-                                    setState(() {
-                                      boardString = '';
-                                      words = null;
-                                      timer?.cancel();
-                                      timer = null;
-                                      userIsFindingWords = true;
-                                      verifiedWords = null;
-                                    });
-                                  },
-                                  icon: const Icon(Icons.clear),
-                                ),
-                              ),
-                              onChanged: (String newString) => setState(() {
-                                boardString = newString.toUpperCase();
-                                words = null;
-                                timer?.cancel();
-                                timer = null;
-                              }),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () {
-                              boardString = generate();
-                              boardStringController.text = boardString;
-                              myWordsController.clear();
+                      children: [
+                        SizedBox(
+                          height: 14,
+                          width: 14,
+                          child: IconButton(
+                            iconSize: 14,
+                            padding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                            splashRadius: 20,
+                            icon: Icon(timer?.isActive ?? false ? Icons.pause_rounded : Icons.play_arrow_rounded, color: timer != null ? null : Colors.transparent,),
+                            onPressed: timer != null ? () {
+                              if (timer?.isActive ?? false) { timer?.cancel(); }
+                              else { startTimer(builderContext); }
                               setState(() {});
-                            },
-                            icon: const Icon(Icons.restart_alt_rounded),
+                            } : null,
                           ),
-                        ],
-                      ),
-                      Expanded(child: buildBoard()),
-                      Expanded(child: buildTabs(builderContext, workingWords)),
+                        ),
+                        TextButton(
+                          onPressed: null,
+                          child: Text(
+                            timer != null ? '${numSeconds ~/ 60}:${(numSeconds % 60).toString().padLeft(2, '0')}' : '    ',
+                            style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        Expanded(
+                          child: TextField(
+                            textAlign: TextAlign.center,
+                            controller: boardStringController,
+                            inputFormatters: [UpperCaseTextFormatter()],
+                            textCapitalization: TextCapitalization.characters,
+                            decoration: InputDecoration(
+                              hintText: 'Enter the board',
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  FocusManager.instance.primaryFocus?.unfocus();
+                                  clearGame();
+                                },
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                            ),
+                            onChanged: (String newString) => setState(() {
+                              boardString = newString.toUpperCase();
+                              words = null;
+                              timer?.cancel();
+                              timer = null;
+                            }),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            boardString = generate();
+                            boardStringController.text = boardString;
+                            myWordsController.clear();
+                            setState(() {});
+                          },
+                          icon: const Icon(Icons.restart_alt_rounded),
+                        ),
+                      ],
+                    ),
+                    Expanded(child: buildBoard()),
+                    Expanded(child: buildTabs(builderContext, workingWords)),
                   ]
                 ),
               ),

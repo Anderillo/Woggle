@@ -47,14 +47,14 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
           onPressed: () async {
             final Uri url = Uri.parse('https://www.dictionary.com/browse/${widget.word}');
             if (!await launchUrl(url)) {
-              // ignore: use_build_context_synchronously
-              Navigator.pop(context);
               SnackBar snackBar = SnackBar(
                 content: Text('Could not launch Dictionary.com for "${widget.word}"'),
               );
               // ignore: use_build_context_synchronously
               ScaffoldMessenger.of(context).showSnackBar(snackBar);
             }
+            // ignore: use_build_context_synchronously
+            Navigator.pop(context);
           },
           child: const Text('Dictionary.com'),
         ),
