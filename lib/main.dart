@@ -13,6 +13,7 @@ import 'package:boggle_solver/removed_words_page.dart';
 import 'package:boggle_solver/utils.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -434,7 +435,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
         value: 'Share Board',
         onTap: () async {
           FocusManager.instance.primaryFocus?.unfocus();
-          String toShare = '\n\n\n${convertStringToEmojis(boardString)}';
+          String toShare = convertStringToEmojis(boardString);
           await Share.shareWithResult(toShare, subject: 'Boggle Board');
         },
         child: const Text('Share Board'),
@@ -611,7 +612,10 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
                           child: TextField(
                             textAlign: TextAlign.center,
                             controller: boardStringController,
-                            inputFormatters: [UpperCaseTextFormatter()],
+                            inputFormatters: [
+                              UpperCaseTextFormatter(),
+                              FilteringTextInputFormatter.allow(RegExp('[A-Z]')),
+                            ],
                             textCapitalization: TextCapitalization.characters,
                             decoration: InputDecoration(
                               hintText: 'Enter the board',
@@ -679,7 +683,6 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight;
-
         return SizedBox(
           height: availableHeight,
           width: availableHeight,
@@ -690,7 +693,7 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
             children: letters.map((letter) => Center(
               child: Text(
                 letter,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: MediaQuery.of(context).size.height / (dimension * 6.3), fontWeight: FontWeight.bold),
               ),
             )).toList(),
           ),
