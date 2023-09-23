@@ -278,7 +278,11 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 20),
+        Text(
+          'Total words: ${verifiedWords!.where((word) => word.state == null || word.state == FoundWordState.IS_POINTS || word.state == FoundWordState.IS_NOT_POINTS).length.toString()}',
+          style: TextStyle(color: Theme.of(context).colorScheme.primary),
+        ),
+        const SizedBox(height: 8),
         Wrap(children: verifiedWords!.sublist(0, index).map((word) => buildWordChip(buildContext, word)).toList()),
         const SizedBox(height: 8),
         Row(
