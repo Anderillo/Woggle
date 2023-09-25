@@ -10,6 +10,10 @@ class VerifiedWords extends StatelessWidget {
   final Function(String) unRemoveWord;
   const VerifiedWords(this.verifiedWords, this.numWords, this.onUpdate, this.removeWord, this.unRemoveWord, {super.key});
 
+  static String getNumVerifiedWords(List<FoundWord>? verifiedWords) {
+    return (verifiedWords ?? []).where((word) => word.state == null || word.state == FoundWordState.IS_POINTS || word.state == FoundWordState.IS_NOT_POINTS).length.toString();
+  }
+
   Widget buildChipAction(BuildContext buildContext, IconData icon, Function() onTap) {
     double iconSize = 22;
     return InkWell(
@@ -142,11 +146,6 @@ class VerifiedWords extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Total words: ${verifiedWords!.where((word) => word.state == null || word.state == FoundWordState.IS_POINTS || word.state == FoundWordState.IS_NOT_POINTS).length.toString()}',
-          style: TextStyle(color: Theme.of(context).colorScheme.secondary),
-        ),
-        const SizedBox(height: 8),
         Wrap(children: verifiedWords!.sublist(0, index).map((word) => buildWordChip(context, word)).toList()),
         const SizedBox(height: 8),
         Row(

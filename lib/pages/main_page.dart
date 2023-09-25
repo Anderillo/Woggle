@@ -71,6 +71,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     minWordLength = prefs!.getInt('minWordLength') ?? Constants.MIN_WORD_LENGTH_DEFAULT;
     boardDimension = prefs!.getInt('boardDimension') ?? Constants.BOARD_DIMENSION_DEFAULT;
     setState(() {});
+    generate(shouldUpdateUI: true);
     
     // ignore: use_build_context_synchronously
     String dictionaryFile = await DefaultAssetBundle.of(context).loadString('assets/dictionary.txt');
@@ -84,7 +85,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void startTimer(BuildContext buildContext) {
+  void startTimer() {
     timer = Timer.periodic(
       const Duration(seconds: 1),
       (Timer timer) {
@@ -94,7 +95,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
             this.timer = null;
           });
           FocusManager.instance.primaryFocus?.unfocus();
-          showDialog(context: buildContext, builder: (BuildContext dialogContext) => AlertDialog(
+          showDialog(context: context, builder: (BuildContext dialogContext) => AlertDialog(
             content: const Text('Time\'s up!'),
             actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Okei'))],
           ));
@@ -125,7 +126,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     }
   }
 
-  String generate(BuildContext buildContext, {bool shouldUpdateUI = false}) {
+  String generate({bool shouldUpdateUI = false}) {
     FocusManager.instance.primaryFocus?.unfocus();
     clearGame();
     words = null;
@@ -138,7 +139,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       boardStringController.text = boardString;
       myWordsController.clear();
       numSeconds = Constants.NUM_SECONDS;
-      startTimer(buildContext);
+      startTimer();
       timer?.cancel();
       setState(() {});
     }
@@ -160,18 +161,18 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     tabController.animateTo(0);
   }
 
-  Future<void> startGame(BuildContext buildContext, {Function(String)? shareAction, String? existingBoardString}) async {
-    String generatedString = existingBoardString ?? generate(buildContext);
+  Future<void> startGame({Function(String)? shareAction, String? existingBoardString}) async {
+    String generatedString = existingBoardString ?? generate();
     if (shareAction != null) { await shareAction(generatedString); }
     boardString = generatedString;
     boardStringController.text = boardString;
     setState(() => numSeconds = Constants.NUM_SECONDS);
     // ignore: use_build_context_synchronously
-    startTimer(buildContext);
+    startTimer();
   }
 
-  Future<void> verifyWords(BuildContext buildContext) async {
-    showLoader(buildContext);
+  Future<void> verifyWords() async {
+    showLoader(context);
     List<String> myWords = myWordsController.text.trim().toLowerCase().split('\n');
     List<FoundWord> foundWords = [];
     Dictionary tempDictionary = Dictionary();
@@ -217,14 +218,14 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     hideLoader();
   }
 
-  List<PopupMenuItem<String>> getAppBarActions(BuildContext buildContext) {
+  List<PopupMenuItem<String>> getAppBarActions() {
     return [
       PopupMenuItem<String>(
         value: 'New Game',
         onTap: () async {
           FocusManager.instance.primaryFocus?.unfocus();
           WidgetsBinding.instance.addPostFrameCallback((_) => showDialog(
-            context: buildContext,
+            context: context,
             builder: (BuildContext dialogContext) {
               return AlertDialog(
                 title: const Text('Start game with'),
@@ -236,7 +237,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       title: const Text('Boggle Solver users'),
                       onTap: () {
                         Navigator.pop(dialogContext);
-                        startGame(buildContext, shareAction: (String generatedString) async {
+                        startGame(shareAction: (String generatedString) async {
                           String toShare = await boardSecrets(generatedString, encrypt: true);
                           await Share.shareWithResult(toShare, subject: 'Boggle Board');
                         });
@@ -247,7 +248,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       title: const Text('Non Boggle Solver users'),
                       onTap: () {
                         Navigator.pop(dialogContext);
-                        startGame(buildContext, shareAction: (String generatedString) async {
+                        startGame(shareAction: (String generatedString) async {
                           String toShare = '\n\n\n${convertStringToEmojis(generatedString)}';
                           await Share.shareWithResult(toShare, subject: 'Boggle Board');
                         });
@@ -258,7 +259,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       title: const Text('Mixed users'),
                       onTap: () async {
                         Navigator.pop(dialogContext);
-                        startGame(buildContext, shareAction: (String generatedString) async {
+                        startGame(shareAction: (String generatedString) async {
                           String toShareEncrypted = await boardSecrets(generatedString, encrypt: true);
                           await Share.shareWithResult(toShareEncrypted, subject: 'Boggle Board');
                           String toShare = '\n\n\n${convertStringToEmojis(generatedString)}';
@@ -279,10 +280,10 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
         onTap: () async {
           FocusManager.instance.primaryFocus?.unfocus();
           WidgetsBinding.instance.addPostFrameCallback((_) => showDialog(
-            context: buildContext,
+            context: context,
             builder: (BuildContext dialogContext) => JoinGameDialog((String decryptedString) {
               clearGame();
-              startGame(buildContext, existingBoardString: decryptedString);
+              startGame(existingBoardString: decryptedString);
             }),
           ));
         },
@@ -373,13 +374,13 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget buildTabs(BuildContext buildContext, List<String>? workingWords) {
+  Widget buildTabs(List<String>? workingWords) {
     return Column(
       children: [
         TabBar(
           controller: tabController,
           tabs: [
-            const Tab(text: 'My Words'),
+            Tab(text: 'My Words${verifiedWords == null ? '' : ' (${VerifiedWords.getNumVerifiedWords(verifiedWords)})'}'),
             Tab(text: 'All Words${workingWords == null ? '' : ' (${workingWords.length})'}'),
           ],
         ),
@@ -444,7 +445,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       workingWords.removeWhere((word) => removedWords?.contains(word) ?? false);
     }
     double timerControlIconSize = 14;
-    List<PopupMenuItem<String>> appBarActions = getAppBarActions(context);
+    List<PopupMenuItem<String>> appBarActions = getAppBarActions();
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
@@ -462,7 +463,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                   }))
                 ).then((value) {
                   if (!userIsFindingWords && hasUnRemovedWord) {
-                    verifyWords(context);
+                    verifyWords();
                     hasUnRemovedWord = false;
                   }
                 });
@@ -499,7 +500,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                           icon: Icon(timer?.isActive ?? false ? Icons.pause_rounded : Icons.play_arrow_rounded, color: timer != null ? null : Colors.transparent,),
                           onPressed: timer != null ? () {
                             if (timer?.isActive ?? false) { timer?.cancel(); }
-                            else { startTimer(context); }
+                            else { startTimer(); }
                             setState(() {});
                           } : null,
                         ),
@@ -560,7 +561,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       alignment: Alignment.center,
                       children: [
                         IconButton(
-                          onPressed: () => generate(context, shouldUpdateUI: true),
+                          onPressed: () => generate(shouldUpdateUI: true),
                           icon: const Icon(Icons.restart_alt_rounded),
                         ),
                         Positioned(
@@ -589,7 +590,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                           onPressed: () async {
                                             Navigator.pop(dialogContext);
                                             boardDimension = dimension;
-                                            generate(context, shouldUpdateUI: true);
+                                            generate(shouldUpdateUI: true);
                                                 
                                             prefs ??= await SharedPreferences.getInstance();
                                             prefs!.setInt('boardDimension', dimension);
@@ -611,7 +612,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                 ],
               ),
               Expanded(child: buildBoard()),
-              Expanded(child: buildTabs(context, workingWords)),
+              Expanded(child: buildTabs(workingWords)),
             ]
           ),
         ),
@@ -619,7 +620,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       floatingActionButton: myWordsController.text.isNotEmpty && MediaQuery.of(context).viewInsets.bottom == 0 && tabController.index == 0 ? FloatingActionButton(
         elevation: 0,
         onPressed: userIsFindingWords ? () {
-          verifyWords(context);
+          verifyWords();
           setState(() => userIsFindingWords = false);
         } : () {
           verifiedWords = null;
