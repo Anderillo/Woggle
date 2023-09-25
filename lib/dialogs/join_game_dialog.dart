@@ -1,4 +1,4 @@
-import 'package:boggle_solver/utils.dart';
+import 'package:boggle_solver/utils/utils.dart';
 import 'package:flutter/material.dart';
 
 class JoinGameDialog extends StatefulWidget {

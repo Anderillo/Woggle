@@ -10,9 +10,16 @@ class RemovedWordsPage extends StatefulWidget {
 }
 
 class _RemovedWordsPageState extends State<RemovedWordsPage> {
+  late Set<String> removedWords;
+  @override
+  void initState() {
+    super.initState();
+    removedWords = widget.removedWords;
+  }
+
   @override
   Widget build(BuildContext context) {
-    List<String> workingRemovedWords = [...widget.removedWords];
+    List<String> workingRemovedWords = [...removedWords];
     workingRemovedWords.sort();
     return Scaffold(
       appBar: AppBar(
@@ -32,7 +39,10 @@ class _RemovedWordsPageState extends State<RemovedWordsPage> {
                     Icons.rotate_left_rounded,
                     color: Theme.of(context).canvasColor,
                   ),
-                  onDeleted: () => widget.unRemove(word),
+                  onDeleted: () {
+                    setState(() => removedWords.remove(word));
+                    widget.unRemove(word);
+                  },
                   backgroundColor: Colors.grey[700],
                 ),
               )).toList(),

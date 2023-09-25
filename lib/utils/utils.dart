@@ -26,7 +26,7 @@ Future<String> getDefinition(String word) async {
 void showLoader(BuildContext context) {
   Loader.show(
     context,
-    progressIndicator: const CircularProgressIndicator(),
+    progressIndicator: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary,),
     overlayColor: Theme.of(context).canvasColor.withOpacity(0.2),
   );
 }
