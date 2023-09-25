@@ -1,5 +1,5 @@
 import 'package:boggle_solver/board/found_word.dart';
-import 'package:boggle_solver/dialogs/definition_dialog.dart';
+import 'package:boggle_solver/widgets/word_chip.dart';
 import 'package:flutter/material.dart';
 
 class VerifiedWords extends StatelessWidget {
@@ -14,109 +14,70 @@ class VerifiedWords extends StatelessWidget {
     return (verifiedWords ?? []).where((word) => word.state == null || word.state == FoundWordState.IS_POINTS || word.state == FoundWordState.IS_NOT_POINTS).length.toString();
   }
 
-  Widget buildChipAction(BuildContext buildContext, IconData icon, Function() onTap) {
-    double iconSize = 22;
-    return InkWell(
-      radius: iconSize * 0.45,
-      onTap: onTap,
-      child: Icon(
-        icon,
-        size: iconSize,
-        color: Theme.of(buildContext).canvasColor,
-      ),
-    );
-  }
-
   Widget buildWordChip(BuildContext buildContext, FoundWord word) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-      child: ElevatedButton(
-        onPressed: () => showDialog(
-          context: buildContext,
-          builder: (BuildContext dialogContext) => DefinitionDialog(word.word),
-        ),
-        onLongPress: word.state == null || word.state == FoundWordState.IS_POINTS || word.state == FoundWordState.IS_NOT_POINTS ? () {
-          showModalBottomSheet(context: buildContext, builder: (BuildContext modalContext) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextButton(
-                  child: const Text('Mark as fake word'),
-                  onPressed: () {
-                    word.setState(FoundWordState.IS_NOT_WORD);
-                    onUpdate();
-                    removeWord(word.word);
-                    Navigator.pop(modalContext);
-                  },
-                ),
-              ]
-            );
-          });
-        } : null,
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: word.getColor() ?? Colors.grey[700],
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.0)),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${word.word}${word.state == FoundWordState.IS_POINTS ? ': ${word.numPoints}' : ''}',
-              style: TextStyle(
-                color: Theme.of(buildContext).textTheme.bodyMedium?.color,
-                decoration: word.state == FoundWordState.IS_NOT_POINTS ? TextDecoration.lineThrough : null,
-                decorationThickness: 2,
-              ),
-            ),
-            const SizedBox(width: 4),
-            if (word.state == FoundWordState.IS_POINTS || word.state == FoundWordState.IS_NOT_POINTS) ...[
-              const SizedBox(width: 4),
-              buildChipAction(
-                buildContext,
-                Icons.close_rounded,
-                () {
-                  word.setState(null);
+    return WordChip(
+      word.word,
+      wordExtension: word.state == FoundWordState.IS_POINTS ? ': ${word.numPoints}' : null,
+      onLongPress: word.state == null || word.state == FoundWordState.IS_POINTS || word.state == FoundWordState.IS_NOT_POINTS ? () {
+        showModalBottomSheet(context: buildContext, builder: (BuildContext modalContext) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextButton(
+                child: const Text('Remove from dictionary'),
+                onPressed: () {
+                  word.setState(FoundWordState.IS_NOT_WORD);
                   onUpdate();
+                  removeWord(word.word);
+                  Navigator.pop(modalContext);
                 },
               ),
-            ],
-            if (word.state == null) ...[
-              const SizedBox(width: 4),
-              buildChipAction(
-                buildContext,
-                Icons.remove_done_rounded,
-                () {
-                  word.setState(FoundWordState.IS_NOT_POINTS);
-                  onUpdate();
-                },
-              ),
-              const SizedBox(width: 4),
-              buildChipAction(
-                buildContext,
-                Icons.check_rounded,
-                () {
-                  word.setState(FoundWordState.IS_POINTS);
-                  onUpdate();
-                },
-              ),
-            ],
-            if (word.state == FoundWordState.IS_NOT_WORD) ...[
-              const SizedBox(width: 4),
-              buildChipAction(
-                buildContext,
-                Icons.keyboard_capslock_rounded,
-                () {
-                  word.setState(null);
-                  onUpdate();
-                  unRemoveWord(word.word);
-                },
-              ),
-            ],
-          ],
-        ),
+            ]
+          );
+        });
+      } : null,
+      color: word.getColor(),
+      wordStyle: TextStyle(
+        decoration: word.state == FoundWordState.IS_NOT_POINTS ? TextDecoration.lineThrough : null,
+        decorationThickness: 2,
       ),
+      actions: [
+        if (word.state == FoundWordState.IS_POINTS || word.state == FoundWordState.IS_NOT_POINTS) ...[
+          ChipAction(
+            Icons.close_rounded,
+            () {
+              word.setState(null);
+              onUpdate();
+            },
+          ),
+        ],
+        if (word.state == null) ...[
+          ChipAction(
+            Icons.remove_done_rounded,
+            () {
+              word.setState(FoundWordState.IS_NOT_POINTS);
+              onUpdate();
+            },
+          ),
+          ChipAction(
+            Icons.check_rounded,
+            () {
+              word.setState(FoundWordState.IS_POINTS);
+              onUpdate();
+            },
+          ),
+        ],
+        if (word.state == FoundWordState.IS_NOT_WORD) ...[
+          ChipAction(
+            Icons.keyboard_capslock_rounded,
+            () {
+              word.setState(null);
+              onUpdate();
+              unRemoveWord(word.word);
+            },
+          ),
+        ],
+      ],
     );
   }
   

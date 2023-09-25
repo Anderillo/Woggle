@@ -1,3 +1,4 @@
+import 'package:boggle_solver/widgets/word_chip.dart';
 import 'package:flutter/material.dart';
 
 class RemovedWordsPage extends StatefulWidget {
@@ -31,20 +32,17 @@ class _RemovedWordsPageState extends State<RemovedWordsPage> {
           child: Container(
             padding: const EdgeInsets.all(8.0),
             child: Wrap(
-              children: workingRemovedWords.map((word) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                child: Chip(
-                  label: Text(word),
-                  deleteIcon: Icon(
+              children: workingRemovedWords.map((word) => WordChip(
+                word,
+                actions: [
+                  ChipAction(
                     Icons.rotate_left_rounded,
-                    color: Theme.of(context).canvasColor,
+                    () {
+                      setState(() => removedWords.remove(word));
+                      widget.unRemove(word);
+                    },
                   ),
-                  onDeleted: () {
-                    setState(() => removedWords.remove(word));
-                    widget.unRemove(word);
-                  },
-                  backgroundColor: Colors.grey[700],
-                ),
+                ],
               )).toList(),
             ),
           ),

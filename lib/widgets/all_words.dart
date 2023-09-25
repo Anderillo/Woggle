@@ -1,5 +1,5 @@
 import 'package:boggle_solver/board/found_word.dart';
-import 'package:boggle_solver/dialogs/definition_dialog.dart';
+import 'package:boggle_solver/widgets/word_chip.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
@@ -37,23 +37,22 @@ class AllWords extends StatelessWidget {
             if (foundWord.state == null || foundWord.state == FoundWordState.IS_POINTS) { backgroundColor = isPointsColor; }
             else if (foundWord.state == FoundWordState.IS_NOT_POINTS) { backgroundColor = isNotPointsColor; }
           }
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0),
-            child: Chip(
-              label: InkWell(
-                onTap: () => showDialog(
-                  context: context,
-                  builder: (BuildContext dialogContext) => DefinitionDialog(word),
-                ),
-                child: Text(word),
-              ),
-              deleteIcon: Icon(
-                Icons.close_rounded,
-                color: removeWord != null ? Theme.of(context).canvasColor : Theme.of(context).dividerColor,
-              ),
-              onDeleted: removeWord != null ? () => removeWord!(word) : null,
-              backgroundColor: backgroundColor,
-            ),
+          return WordChip(
+            word,
+            onLongPress: removeWord != null ? () {
+              showModalBottomSheet(context: context, builder: (BuildContext modalContext) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      child: const Text('Remove from dictionary'),
+                      onPressed: () => removeWord!(word),
+                    ),
+                  ]
+                );
+              });
+            } : null,
+            color: backgroundColor,
           );
         }).toList(),
       );
