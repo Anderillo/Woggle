@@ -35,6 +35,8 @@ void hideLoader() => Loader.hide();
 String convertStringToEmojis(String boardString) {
   int dimension = sqrt(max(boardString.replaceAll('QU', 'Q').length, 1)).ceil();
   String emojiString = '';
+  for (int j = 0; j < dimension; j++) { emojiString += '━━━'; }
+  emojiString += '\n|';
   for (int i = 0; i < boardString.length; i++) {
     String letter = boardString[i];
     if (i < boardString.length - 1 && boardString[i] == 'Q' && boardString[i + 1] == 'U') {
@@ -42,7 +44,17 @@ String convertStringToEmojis(String boardString) {
       boardString = boardString.substring(0, i + 1) + boardString.substring(i + 2);
     }
     emojiString += EMOJI_ICONS[letter]!;
-    if ((i + 1) % dimension == 0 && i < boardString.length - 1) { emojiString += '\n\n'; }
+    if ((i + 1) % dimension == 0) {
+      if (i < boardString.length - 1) {
+        emojiString += '|\n|';
+        for (int j = 0; j < dimension; j++) { emojiString += '  　  '; }
+        emojiString += '|\n|';
+      }
+      else {
+        emojiString += '|\n';
+        for (int j = 0; j < dimension; j++) { emojiString += '━━━'; }
+      }
+    }
   }
   return emojiString;
 }
