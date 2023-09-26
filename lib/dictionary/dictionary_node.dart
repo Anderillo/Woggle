@@ -1,5 +1,5 @@
 class WordSearchResult {
-  final bool isWord;
+  bool isWord;
   final bool hasChildren;
   WordSearchResult(this.isWord, this.hasChildren);
 }

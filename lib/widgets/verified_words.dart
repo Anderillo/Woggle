@@ -6,9 +6,9 @@ class VerifiedWords extends StatelessWidget {
   final List<FoundWord>? verifiedWords;
   final int? numWords;
   final Function() onUpdate;
+  final Function(String) addWord;
   final Function(String) removeWord;
-  final Function(String) unRemoveWord;
-  const VerifiedWords(this.verifiedWords, this.numWords, this.onUpdate, this.removeWord, this.unRemoveWord, {super.key});
+  const VerifiedWords(this.verifiedWords, this.numWords, this.onUpdate, this.addWord, this.removeWord, {super.key});
 
   static String getNumVerifiedWords(List<FoundWord>? verifiedWords) {
     return (verifiedWords ?? []).where((word) => word.state == null || word.state == FoundWordState.IS_POINTS || word.state == FoundWordState.IS_NOT_POINTS).length.toString();
@@ -73,7 +73,7 @@ class VerifiedWords extends StatelessWidget {
             () {
               word.setState(null);
               onUpdate();
-              unRemoveWord(word.word);
+              addWord(word.word);
             },
           ),
         ],

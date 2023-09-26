@@ -8,7 +8,7 @@ import 'package:boggle_solver/board/found_word.dart';
 import 'package:boggle_solver/dialogs/join_game_dialog.dart';
 import 'package:boggle_solver/dialogs/min_word_length_dialog.dart';
 import 'package:boggle_solver/dictionary/dictionary.dart';
-import 'package:boggle_solver/pages/removed_words_page.dart';
+import 'package:boggle_solver/pages/dictionary_modifications_page.dart';
 import 'package:boggle_solver/utils/constants.dart';
 import 'package:boggle_solver/utils/utils.dart';
 import 'package:boggle_solver/widgets/all_words.dart';
@@ -27,7 +27,7 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
-  Dictionary dictionary = Dictionary();
+  late Dictionary dictionary;
   bool isDictionaryLoaded = false;
   Board? board;
   Set<String>? words;
@@ -35,7 +35,8 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   TextEditingController myWordsController = TextEditingController();
   String boardString = '';
   bool get isSearchAvailable => isDictionaryLoaded && boardString.isNotEmpty && sqrt(boardString.replaceAll('QU', 'Q').length).truncate() == sqrt(boardString.replaceAll('QU', 'Q').length);
-  Set<String>? removedWords;
+  late Set<String> addedWords;
+  late Set<String> removedWords;
   SharedPreferences? prefs;
   int minWordLength = Constants.MIN_WORD_LENGTH_DEFAULT;
   late Dice dice;
@@ -46,12 +47,16 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   late TabController tabController;
   bool userIsFindingWords = true;
   List<FoundWord>? verifiedWords;
-  bool hasUnRemovedWord = false;
+  bool hasModifiedDictionary = false;
   int? boardDimension;
 
   @override
   void initState() {
     super.initState();
+    dictionary = Dictionary(
+      isWordAdded: (word) => addedWords.contains(word),
+      isWordRemoved: (word) => removedWords.contains(word),
+    );
     init();
     tabController = TabController(
       initialIndex: 0,
@@ -65,9 +70,11 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
   Future<void> init() async {
     dice = Dice();
-    prefs = await SharedPreferences.getInstance();
+    addedWords = {};
     removedWords = {};
-    removedWords!.addAll(prefs!.getStringList('removedWords')?.toList() ?? []);
+    prefs = await SharedPreferences.getInstance();
+    addedWords.addAll(prefs!.getStringList('addedWords')?.toList() ?? []);
+    removedWords.addAll(prefs!.getStringList('removedWords')?.toList() ?? []);
     minWordLength = prefs!.getInt('minWordLength') ?? Constants.MIN_WORD_LENGTH_DEFAULT;
     boardDimension = prefs!.getInt('boardDimension') ?? Constants.BOARD_DIMENSION_DEFAULT;
     setState(() {});
@@ -75,7 +82,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     
     // ignore: use_build_context_synchronously
     String dictionaryFile = await DefaultAssetBundle.of(context).loadString('assets/dictionary.txt');
-    for (String word in dictionaryFile.split('\n')) { if (!(removedWords!.contains(word.toLowerCase().trim()))) { dictionary.addWord(word); } }
+    for (String word in dictionaryFile.split('\n')) { dictionary.addWord(word); }
     setState(() => isDictionaryLoaded = true);
   }
 
@@ -105,25 +112,32 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     );
   }
 
-  Future<void> removeWord(String word) async {
-    if (removedWords != null) {
-      words?.remove(word);
-      setState(() {});
-      prefs ??= await SharedPreferences.getInstance();
-      removedWords!.add(word);
-      prefs!.setStringList('removedWords', removedWords!.toList());
+  Future<void> addWord(String word) async {
+    prefs ??= await SharedPreferences.getInstance();
+    if (removedWords.contains(word)) {
+      removedWords.remove(word);
+      prefs!.setStringList('removedWords', removedWords.toList());
     }
+    else {
+      addedWords.add(word);
+      prefs!.setStringList('addedWords', addedWords.toList());
+    }
+    if (words != null) { words = board!.search(dictionary); }
+    setState(() {});
   }
 
-  Future<void> unRemoveWord(String word) async {
-    if (removedWords != null) {
-      removedWords!.remove(word);
-      dictionary.addWord(word);
-      if (words != null) { words = board!.search(dictionary); }
-      setState(() {});
-      prefs ??= await SharedPreferences.getInstance();
-      prefs!.setStringList('removedWords', removedWords!.toList());
+  Future<void> removeWord(String word) async {
+    prefs ??= await SharedPreferences.getInstance();
+    if (addedWords.contains(word)) {
+      addedWords.remove(word);
+      prefs!.setStringList('addedWords', addedWords.toList());
     }
+    else {
+      removedWords.add(word);
+      prefs!.setStringList('removedWords', removedWords.toList());
+    }
+    words?.remove(word);
+    setState(() {});
   }
 
   String generate({bool shouldUpdateUI = false}) {
@@ -328,9 +342,9 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
           }),
         ),
       ),
-      if (removedWords?.isNotEmpty ?? false) const PopupMenuItem<String>(
-        value: 'Removed Words',
-        child: Text('Removed Words'),
+      const PopupMenuItem<String>(
+        value: 'Dictionary',
+        child: Text('Dictionary'),
       ),
     ];
   }
@@ -412,8 +426,8 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                   verifiedWords,
                   words?.length,
                   () => setState(() {}),
-                  (String word) { if (dictionary.hasWord(word).isWord) { removeWord(word); } },
-                  (String word) { if (removedWords?.contains(word) ?? false) { unRemoveWord(word);  } },
+                  addWord,
+                  removeWord,
                 ),
               ),
               SingleChildScrollView(
@@ -427,7 +441,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                     words = board!.search(dictionary);
                     setState(() {});
                   } : null,
-                  removedWords != null ? (String word) => removeWord(word) : null,
+                  (String word) => removeWord(word),
                 ),
               ),
             ],
@@ -442,7 +456,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     List<String>? workingWords;
     if (words != null) {
       workingWords = [...words!.toList()];
-      workingWords.removeWhere((word) => removedWords?.contains(word) ?? false);
+      workingWords.removeWhere((word) => removedWords.contains(word));
     }
     double timerControlIconSize = 14;
     List<PopupMenuItem<String>> appBarActions = getAppBarActions();
@@ -454,17 +468,38 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
           PopupMenuButton<String>(
             enabled: appBarActions.isNotEmpty,
             onSelected: (String result) {
-              if (result == 'Removed Words') {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => RemovedWordsPage(
-                  removedWords!,
+              if (result == 'Dictionary') {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => DictionaryModificationsPage(
+                  addedWords,
                   (String word) {
-                    unRemoveWord(word);
-                    hasUnRemovedWord = true;
-                  }))
+                    removeWord(word);
+                    hasModifiedDictionary = true;
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$word removed from dictionary')));
+                  },
+                  removedWords,
+                  (String word) {
+                    String message;
+                    bool isAdded = false;
+                    if (removedWords.contains(word)) {
+                      message = '"$word" added back from removed words';
+                      addWord(word);
+                      hasModifiedDictionary = true;
+                    }
+                    else if (!dictionary.hasWord(word).isWord) {
+                      message = '"$word" added to dictionary';
+                      addWord(word);
+                      hasModifiedDictionary = true;
+                      isAdded = true;
+                    }
+                    else { message = '"$word" already in dictionary'; }
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+                    return isAdded;
+                  }
+                  ))
                 ).then((value) {
-                  if (!userIsFindingWords && hasUnRemovedWord) {
+                  if (!userIsFindingWords && hasModifiedDictionary) {
                     verifyWords();
-                    hasUnRemovedWord = false;
+                    hasModifiedDictionary = false;
                   }
                 });
               }

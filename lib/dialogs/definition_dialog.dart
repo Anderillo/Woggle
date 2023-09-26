@@ -35,13 +35,15 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(widget.word),
-      content: definition != null
-        ? Text(definition!)
-        : const Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [CircularProgressIndicator()],
-        ),
+      content: SizedBox(
+        width: MediaQuery.of(context).size.width,
+        child: definition != null
+          ? Text(definition!)
+          : const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [CircularProgressIndicator()],
+          ),
+      ),
       actions: [
         TextButton(
           onPressed: () async {
