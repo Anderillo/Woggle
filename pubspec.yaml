@@ -1,5 +1,5 @@
-name: boggle_solver
-description: A small Flutter project for making Boggle easy to play and the solutions easy to see.
+name: woggle
+description: A word game for finding words from a given grid and seeing all the solutions after play. Playable with Wogglers and non-Wogglers alike.
 publish_to: 'none'
 version: 0.1.0
 
@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_overlay_loader: ^2.0.0
+  google_fonts: ^6.1.0
   http: ^1.1.0
   share_plus: ^7.1.0
   shared_preferences: ^2.2.0
@@ -30,5 +31,6 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
+  remove_alpha_ios: true
   image_path: "assets/icon.png"
   min_sdk_android: 19

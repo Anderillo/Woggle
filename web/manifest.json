@@ -1,6 +1,6 @@
 {
-    "name": "boggle_solver",
-    "short_name": "boggle_solver",
+    "name": "woggle",
+    "short_name": "woggle",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

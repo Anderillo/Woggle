@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "boggle_solver" "\0"
+            VALUE "CompanyName", "com.whalecode" "\0"
+            VALUE "FileDescription", "woggle" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "boggle_solver" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2023 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "boggle_solver.exe" "\0"
-            VALUE "ProductName", "boggle_solver" "\0"
+            VALUE "InternalName", "woggle" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2023 com.whalecode. All rights reserved." "\0"
+            VALUE "OriginalFilename", "woggle.exe" "\0"
+            VALUE "ProductName", "woggle" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

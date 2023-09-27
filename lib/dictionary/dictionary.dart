@@ -1,4 +1,4 @@
-import 'package:boggle_solver/dictionary/dictionary_node.dart';
+import 'package:woggle/dictionary/dictionary_node.dart';
 
 class Dictionary {
   final bool Function(String) isWordRemoved;

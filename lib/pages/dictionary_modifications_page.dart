@@ -1,6 +1,6 @@
-import 'package:boggle_solver/widgets/word_chip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:woggle/widgets/word_chip.dart';
 
 class DictionaryModificationsPage extends StatefulWidget {
   final Set<String> addedWords;

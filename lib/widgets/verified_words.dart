@@ -1,6 +1,6 @@
-import 'package:boggle_solver/board/found_word.dart';
-import 'package:boggle_solver/widgets/word_chip.dart';
 import 'package:flutter/material.dart';
+import 'package:woggle/board/found_word.dart';
+import 'package:woggle/widgets/word_chip.dart';
 
 class VerifiedWords extends StatelessWidget {
   final List<FoundWord>? verifiedWords;

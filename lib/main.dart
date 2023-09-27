@@ -1,5 +1,5 @@
-import 'package:boggle_solver/pages/main_page.dart';
-import 'package:boggle_solver/utils/constants.dart';
+import 'package:woggle/pages/main_page.dart';
+import 'package:woggle/utils/constants.dart';
 import 'package:flutter/material.dart';
 
 void main() {

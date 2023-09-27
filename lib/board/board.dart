@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import 'package:boggle_solver/dictionary/dictionary.dart';
-import 'package:boggle_solver/dictionary/dictionary_node.dart';
+import 'package:woggle/dictionary/dictionary.dart';
+import 'package:woggle/dictionary/dictionary_node.dart';
 
 class Board {
   late List<List<String>> board;

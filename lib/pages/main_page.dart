@@ -2,22 +2,23 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:boggle_solver/board/board.dart';
-import 'package:boggle_solver/board/dice.dart';
-import 'package:boggle_solver/board/found_word.dart';
-import 'package:boggle_solver/dialogs/join_game_dialog.dart';
-import 'package:boggle_solver/dialogs/min_word_length_dialog.dart';
-import 'package:boggle_solver/dictionary/dictionary.dart';
-import 'package:boggle_solver/pages/dictionary_modifications_page.dart';
-import 'package:boggle_solver/utils/constants.dart';
-import 'package:boggle_solver/utils/utils.dart';
-import 'package:boggle_solver/widgets/all_words.dart';
-import 'package:boggle_solver/widgets/verified_words.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:woggle/board/board.dart';
+import 'package:woggle/board/dice.dart';
+import 'package:woggle/board/found_word.dart';
+import 'package:woggle/dialogs/join_game_dialog.dart';
+import 'package:woggle/dialogs/min_word_length_dialog.dart';
+import 'package:woggle/dictionary/dictionary.dart';
+import 'package:woggle/pages/dictionary_modifications_page.dart';
+import 'package:woggle/utils/constants.dart';
+import 'package:woggle/utils/utils.dart';
+import 'package:woggle/widgets/all_words.dart';
+import 'package:woggle/widgets/verified_words.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -248,23 +249,23 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                   children: [
                     ListTile(
                       leading: const Icon(Icons.people_rounded),
-                      title: const Text('Boggle Solver users'),
+                      title: const Text('Wogglers'),
                       onTap: () {
                         Navigator.pop(dialogContext);
                         startGame(shareAction: (String generatedString) async {
                           String toShare = await boardSecrets(generatedString, encrypt: true);
-                          await Share.shareWithResult(toShare, subject: 'Boggle Board');
+                          await Share.shareWithResult(toShare, subject: 'Woggle Board');
                         });
                       },
                     ),
                     ListTile(
                       leading: const Icon(Icons.person_outline_rounded),
-                      title: const Text('Non Boggle Solver users'),
+                      title: const Text('Non-Wogglers'),
                       onTap: () {
                         Navigator.pop(dialogContext);
                         startGame(shareAction: (String generatedString) async {
                           String toShare = '\n\n\n${convertStringToEmojis(generatedString)}';
-                          await Share.shareWithResult(toShare, subject: 'Boggle Board');
+                          await Share.shareWithResult(toShare, subject: 'Woggle Board');
                         });
                       },
                     ),
@@ -275,9 +276,9 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                         Navigator.pop(dialogContext);
                         startGame(shareAction: (String generatedString) async {
                           String toShareEncrypted = await boardSecrets(generatedString, encrypt: true);
-                          await Share.shareWithResult(toShareEncrypted, subject: 'Boggle Board');
+                          await Share.shareWithResult(toShareEncrypted, subject: 'Woggle Board');
                           String toShare = '\n\n\n${convertStringToEmojis(generatedString)}';
-                          await Share.shareWithResult(toShare, subject: 'Boggle Board');
+                          await Share.shareWithResult(toShare, subject: 'Woggle Board');
                         });
                       },
                     ),
@@ -308,7 +309,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
         onTap: () async {
           FocusManager.instance.primaryFocus?.unfocus();
           String toShare = convertStringToEmojis(boardString);
-          await Share.shareWithResult(toShare, subject: 'Boggle Board');
+          await Share.shareWithResult(toShare, subject: 'Woggle Board');
         },
         child: const Text('Share Board'),
       ),
@@ -463,7 +464,15 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
-        title: const Text('Boggle Solver'),
+        title: RichText(
+          text: TextSpan(
+            style: GoogleFonts.varelaRound().copyWith(fontSize: 26),
+            children: const <TextSpan>[
+              TextSpan(text: 'W', style: TextStyle(color: Constants.primaryColor)),
+              TextSpan(text: 'oggle'),
+            ],
+          ),
+        ),
         actions: [
           PopupMenuButton<String>(
             enabled: appBarActions.isNotEmpty,

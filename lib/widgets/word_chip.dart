@@ -1,5 +1,5 @@
-import 'package:boggle_solver/dialogs/definition_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:woggle/dialogs/definition_dialog.dart';
 
 class WordChip extends StatelessWidget {
   final String word;

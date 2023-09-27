@@ -1,4 +1,4 @@
-package com.example.boggle_solver
+package com.whalecode.woggle
 
 import io.flutter.embedding.android.FlutterActivity
 

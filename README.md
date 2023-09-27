@@ -1,3 +1,3 @@
-# Boggle Solver
+# Woggle
 
-A small Flutter project for making Boggle easy to play and the solutions easy to see.
+A Flutter-based word game for finding words from a given grid and seeing all the solutions after play. Playable with other Wogglers and non-Wogglers alike.

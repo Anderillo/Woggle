@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:boggle_solver/board/dice.dart';
 import 'package:encrypt/encrypt.dart';
 import 'package:flutter/material.dart' hide Key;
 import 'package:flutter/services.dart';
 import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:http/http.dart';
+import 'package:woggle/board/dice.dart';
 
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override
