@@ -46,7 +46,10 @@ class AllWords extends StatelessWidget {
                   children: [
                     TextButton(
                       child: const Text('Remove from dictionary'),
-                      onPressed: () => removeWord!(word),
+                      onPressed: () {
+                        removeWord!(word);
+                        Navigator.pop(modalContext);
+                      },
                     ),
                   ]
                 );
