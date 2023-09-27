@@ -1,6 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:woggle/pages/main_page.dart';
 import 'package:woggle/utils/constants.dart';
-import 'package:flutter/material.dart';
 
 void main() {
   runApp(const MainApp());
@@ -14,6 +14,7 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       theme: ThemeData(
         brightness: Brightness.dark,
+        primaryColor: Constants.primaryColor,
         colorScheme: ColorScheme.fromSeed(
           seedColor: Constants.primaryColor,
           brightness: Brightness.dark,
