@@ -113,6 +113,12 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     );
   }
 
+  void resetTimer() {
+    numSeconds = Constants.NUM_SECONDS;
+    startTimer();
+    timer?.cancel();
+  }
+
   Future<void> addWord(String word) async {
     prefs ??= await SharedPreferences.getInstance();
     if (removedWords.contains(word)) {
@@ -153,9 +159,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       boardString = generated;
       boardStringController.text = boardString;
       myWordsController.clear();
-      numSeconds = Constants.NUM_SECONDS;
-      startTimer();
-      timer?.cancel();
+      resetTimer();
       setState(() {});
     }
     return generated;
@@ -212,6 +216,9 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     for (FoundWord foundWord in foundWords) {
       if (!searchedWords.contains(foundWord.word)) {
         foundWord.setState(FoundWordState.IS_NOT_FOUND);
+      }
+      else if (removedWords.contains(foundWord.word)) {
+        foundWord.setState(FoundWordState.IS_NOT_WORD);
       }
       else {
         await getDefinition(foundWord.word).then((String definition) {}).catchError((error) {
@@ -593,8 +600,14 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       onChanged: (String newString) => setState(() {
                         boardString = newString.toUpperCase();
                         words = null;
-                        timer?.cancel();
-                        timer = null;
+                        int newStringLength = newString.length;
+                        if (sqrt(newStringLength).toInt() == sqrt(newStringLength)) {
+                          resetTimer();
+                        }
+                        else {
+                          timer?.cancel();
+                          timer = null;
+                        }
                       }),
                     ),
                   ),
@@ -664,6 +677,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       floatingActionButton: myWordsController.text.isNotEmpty && MediaQuery.of(context).viewInsets.bottom == 0 && tabController.index == 0 ? FloatingActionButton(
         elevation: 0,
         onPressed: userIsFindingWords ? () {
+          FocusManager.instance.primaryFocus?.unfocus();
           verifyWords();
           setState(() => userIsFindingWords = false);
         } : () {
