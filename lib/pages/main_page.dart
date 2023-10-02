@@ -603,6 +603,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       children: [
                         TextButton(
                           onPressed: timer != null && numSeconds < Constants.NUM_SECONDS ? () { setState(() => numSeconds = Constants.NUM_SECONDS); } : null,
+                          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.secondary),
                           child: Text(
                             timer != null ? '${numSeconds ~/ 60}:${(numSeconds % 60).toString().padLeft(2, '0')}' : '    ',
                             style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.w600),
