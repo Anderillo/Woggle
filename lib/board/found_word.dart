@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:woggle/utils/utils.dart';
 
 enum FoundWordState {
   IS_POINTS,
@@ -25,14 +26,7 @@ class FoundWord {
 
   void setState(FoundWordState? state) {
     this.state = state;
-    if (this.state == FoundWordState.IS_POINTS) {
-      if (word.length < 3) { numPoints = 0; }
-      else if (word.length == 3 || word.length == 4) { numPoints = 1; }
-      else if (word.length == 5) { numPoints = 2; }
-      else if (word.length == 6) { numPoints = 3; }
-      else if (word.length == 7) { numPoints = 5; }
-      else if (word.length >= 8) { numPoints = 11; }
-    }
+    if (this.state == FoundWordState.IS_POINTS) { numPoints = getPointsFromWordLength(word.length); }
     else { numPoints = 0; }
   }
 

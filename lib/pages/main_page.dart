@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
@@ -15,6 +14,7 @@ import 'package:woggle/dialogs/join_game_dialog.dart';
 import 'package:woggle/dialogs/min_word_length_dialog.dart';
 import 'package:woggle/dictionary/dictionary.dart';
 import 'package:woggle/pages/dictionary_modifications_page.dart';
+import 'package:woggle/pages/rules_page.dart';
 import 'package:woggle/utils/constants.dart';
 import 'package:woggle/utils/utils.dart';
 import 'package:woggle/widgets/all_words.dart';
@@ -50,6 +50,8 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   List<FoundWord>? verifiedWords;
   bool hasModifiedDictionary = false;
   int? boardDimension;
+
+  final GlobalKey popupButtonKey = GlobalKey<State>(); 
 
   @override
   void initState() {
@@ -217,17 +219,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       if (!searchedWords.contains(foundWord.word)) {
         foundWord.setState(FoundWordState.IS_NOT_FOUND);
       }
-      else if (removedWords.contains(foundWord.word)) {
-        foundWord.setState(FoundWordState.IS_NOT_WORD);
-      }
-      else {
-        await getDefinition(foundWord.word).then((String definition) {}).catchError((error) {
-          if (error is TimeoutException || error is SocketException) {
-            if (!dictionary.hasWord(foundWord.word).isWord) { foundWord.setState(FoundWordState.IS_NOT_WORD); }
-          }
-          else { foundWord.setState(FoundWordState.IS_NOT_WORD); }
-        });
-      }
+      else if (!dictionary.hasWord(foundWord.word).isWord) { foundWord.setState(FoundWordState.IS_NOT_WORD); }
       if (foundWord.state == null && foundWord.word.length < minWordLength) { foundWord.setState(FoundWordState.IS_TOO_SHORT); }
     }
 
@@ -240,89 +232,100 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     hideLoader();
   }
 
-  List<PopupMenuItem<String>> getAppBarActions() {
+  List<PopupMenuItem<String>> getAppBarActions({bool isSocial = false}) {
+    if (isSocial) {
+      return [
+        PopupMenuItem<String>(
+          value: 'New Game',
+          onTap: () async {
+            FocusManager.instance.primaryFocus?.unfocus();
+            WidgetsBinding.instance.addPostFrameCallback((_) => showDialog(
+              context: context,
+              builder: (BuildContext dialogContext) {
+                return AlertDialog(
+                  title: const Text('Start game with'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.people_rounded),
+                        title: const Text('Wogglers'),
+                        onTap: () {
+                          Navigator.pop(dialogContext);
+                          startGame(shareAction: (String generatedString) async {
+                            String toShare = await boardSecrets(generatedString, encrypt: true);
+                            await Share.shareWithResult(toShare, subject: 'Woggle Board');
+                          });
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.person_outline_rounded),
+                        title: const Text('Non-Wogglers'),
+                        onTap: () {
+                          Navigator.pop(dialogContext);
+                          startGame(shareAction: (String generatedString) async {
+                            String toShare = '\n\n\n${convertStringToEmojis(generatedString)}';
+                            await Share.shareWithResult(toShare, subject: 'Woggle Board');
+                          });
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.diversity_3_rounded),
+                        title: const Text('Mixed users'),
+                        onTap: () async {
+                          Navigator.pop(dialogContext);
+                          startGame(shareAction: (String generatedString) async {
+                            String toShareEncrypted = await boardSecrets(generatedString, encrypt: true);
+                            await Share.shareWithResult(toShareEncrypted, subject: 'Woggle Board');
+                            String toShare = '\n\n\n${convertStringToEmojis(generatedString)}';
+                            await Share.shareWithResult(toShare, subject: 'Woggle Board');
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ));
+          },
+          child: const ListTile(title: Text('New Game')),
+        ),
+        PopupMenuItem<String>(
+          value: 'Join Game',
+          onTap: () async {
+            FocusManager.instance.primaryFocus?.unfocus();
+            WidgetsBinding.instance.addPostFrameCallback((_) => showDialog(
+              context: context,
+              builder: (BuildContext dialogContext) => JoinGameDialog((String decryptedString) {
+                clearGame();
+                startGame(existingBoardString: decryptedString);
+              }),
+            ));
+          },
+          child: const ListTile(title: Text('Join Game')),
+        ),
+        if (boardString != '') PopupMenuItem<String>(
+          value: 'Share Board',
+          onTap: () async {
+            FocusManager.instance.primaryFocus?.unfocus();
+            String toShare = convertStringToEmojis(boardString);
+            await Share.shareWithResult(toShare, subject: 'Woggle Board');
+          },
+          child: const ListTile(title: Text('Share Board')),
+        ),
+      ];
+    }
     return [
-      PopupMenuItem<String>(
-        value: 'New Game',
-        onTap: () async {
-          FocusManager.instance.primaryFocus?.unfocus();
-          WidgetsBinding.instance.addPostFrameCallback((_) => showDialog(
-            context: context,
-            builder: (BuildContext dialogContext) {
-              return AlertDialog(
-                title: const Text('Start game with'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.people_rounded),
-                      title: const Text('Wogglers'),
-                      onTap: () {
-                        Navigator.pop(dialogContext);
-                        startGame(shareAction: (String generatedString) async {
-                          String toShare = await boardSecrets(generatedString, encrypt: true);
-                          await Share.shareWithResult(toShare, subject: 'Woggle Board');
-                        });
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.person_outline_rounded),
-                      title: const Text('Non-Wogglers'),
-                      onTap: () {
-                        Navigator.pop(dialogContext);
-                        startGame(shareAction: (String generatedString) async {
-                          String toShare = '\n\n\n${convertStringToEmojis(generatedString)}';
-                          await Share.shareWithResult(toShare, subject: 'Woggle Board');
-                        });
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.diversity_3_rounded),
-                      title: const Text('Mixed users'),
-                      onTap: () async {
-                        Navigator.pop(dialogContext);
-                        startGame(shareAction: (String generatedString) async {
-                          String toShareEncrypted = await boardSecrets(generatedString, encrypt: true);
-                          await Share.shareWithResult(toShareEncrypted, subject: 'Woggle Board');
-                          String toShare = '\n\n\n${convertStringToEmojis(generatedString)}';
-                          await Share.shareWithResult(toShare, subject: 'Woggle Board');
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              );
-            },
-          ));
-        },
-        child: const Text('New Game'),
-      ),
-      PopupMenuItem<String>(
-        value: 'Join Game',
-        onTap: () async {
-          FocusManager.instance.primaryFocus?.unfocus();
-          WidgetsBinding.instance.addPostFrameCallback((_) => showDialog(
-            context: context,
-            builder: (BuildContext dialogContext) => JoinGameDialog((String decryptedString) {
-              clearGame();
-              startGame(existingBoardString: decryptedString);
-            }),
-          ));
-        },
-        child: const Text('Join Game'),
-      ),
-      if (boardString != '') PopupMenuItem<String>(
-        value: 'Share Board',
-        onTap: () async {
-          FocusManager.instance.primaryFocus?.unfocus();
-          String toShare = convertStringToEmojis(boardString);
-          await Share.shareWithResult(toShare, subject: 'Woggle Board');
-        },
-        child: const Text('Share Board'),
+      const PopupMenuItem<String>(
+        value: 'Social',
+        child: ListTile(
+          title: Text('Social'),
+          trailing: Icon(Icons.arrow_right_rounded),
+        ),
       ),
       PopupMenuItem<String>(
         value: 'Min Word Length',
-        child: Text('Min Word Length: $minWordLength'),
+        child: ListTile(title: Text('Min Word Length: $minWordLength')),
         onTap: () => WidgetsBinding.instance.addPostFrameCallback((_) => showDialog(
           context: context,
           builder: (BuildContext dialogContext) => MinWordLengthDialog(
@@ -352,7 +355,11 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       ),
       const PopupMenuItem<String>(
         value: 'Dictionary',
-        child: Text('Dictionary'),
+        child: ListTile(title: Text('Dictionary')),
+      ),
+      const PopupMenuItem<String>(
+        value: 'Rules',
+        child: ListTile(title: Text('Rules')),
       ),
     ];
   }
@@ -399,12 +406,15 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   Widget buildTabs(List<String>? workingWords) {
     return Column(
       children: [
-        TabBar(
-          controller: tabController,
-          tabs: [
-            Tab(text: 'My Words${verifiedWords == null ? '' : ' (${VerifiedWords.getNumVerifiedWords(verifiedWords)})'}'),
-            Tab(text: 'All Words${workingWords == null ? '' : ' (${workingWords.length})'}'),
-          ],
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: TabBar(
+            controller: tabController,
+            tabs: [
+              Tab(text: 'My Words${verifiedWords == null ? '' : ' (${VerifiedWords.getNumVerifiedWords(verifiedWords)})'}'),
+              Tab(text: 'All Words${workingWords == null ? '' : ' (${workingWords.length})'}'),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
         Expanded(
@@ -413,49 +423,76 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
             children: [
               SingleChildScrollView(
                 key: const PageStorageKey('myWords'),
-                child: userIsFindingWords ? Container(
-                  padding: const EdgeInsets.all(16),
-                  child: TextField(
-                    key: const PageStorageKey('myWordsTextField'),
-                    controller: myWordsController,
-                    keyboardType: TextInputType.multiline,
-                    onChanged: (String word) => setState(() {}),
-                    minLines: 2,
-                    maxLines: null,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Enter words...',
-                      isDense: true,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: userIsFindingWords ? Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: TextField(
+                      key: const PageStorageKey('myWordsTextField'),
+                      controller: myWordsController,
+                      keyboardType: TextInputType.multiline,
+                      onChanged: (String word) => setState(() {}),
+                      minLines: 2,
+                      maxLines: null,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: 'Enter words...',
+                        isDense: true,
+                      ),
+                      enableSuggestions: false,
+                      autocorrect: false,
                     ),
-                    enableSuggestions: false,
-                    autocorrect: false,
+                  ) : VerifiedWords(
+                    verifiedWords,
+                    words?.length,
+                    () => setState(() {}),
+                    addWord,
+                    removeWord,
                   ),
-                ) : VerifiedWords(
-                  verifiedWords,
-                  words?.length,
-                  () => setState(() {}),
-                  addWord,
-                  removeWord,
                 ),
               ),
               SingleChildScrollView(
                 key: const PageStorageKey('allWords'),
-                child: AllWords(
-                  workingWords,
-                  verifiedWords,
-                  isSearchAvailable ? () {
-                    FocusManager.instance.primaryFocus?.unfocus();
-                    board = Board(boardString, minWordLength);
-                    words = board!.search(dictionary);
-                    setState(() {});
-                  } : null,
-                  (String word) => removeWord(word),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: AllWords(
+                    workingWords,
+                    verifiedWords,
+                    isSearchAvailable ? () {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      board = Board(boardString, minWordLength);
+                      words = board!.search(dictionary);
+                      setState(() {});
+                    } : null,
+                    (String word) => removeWord(word),
+                  ),
                 ),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  void showSubMenu() {
+    final RenderBox popupButtonObject = popupButtonKey.currentContext?.findRenderObject() as RenderBox;
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RelativeRect position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        popupButtonObject.localToGlobal(Offset.zero, ancestor: overlay),
+        popupButtonObject.localToGlobal(popupButtonObject.size.bottomRight(Offset.zero), ancestor: overlay),
+      ),
+      Offset.zero & overlay.size,
+    );
+
+    showMenu(
+      context: context,
+      elevation: 8.0, // default value
+      items: getAppBarActions(isSocial: true),
+      initialValue: null,
+      position: position,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(4))),
     );
   }
 
@@ -482,7 +519,9 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
         ),
         actions: [
           PopupMenuButton<String>(
+            key: popupButtonKey,
             enabled: appBarActions.isNotEmpty,
+            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(4))),
             onSelected: (String result) {
               if (result == 'Dictionary') {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => DictionaryModificationsPage(
@@ -519,63 +558,65 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                   }
                 });
               }
+              else if (result == 'Social') {
+                showSubMenu();
+              }
+              else if (result == 'Rules') {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => RulesPage(minWordLength, boardDimension ?? Constants.BOARD_DIMENSION_DEFAULT)));
+              }
             },
             itemBuilder: (BuildContext context) => appBarActions,
           ),
         ],
       ),
       body: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
-          child: Column(
-            children: [
-              Row(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.only(left: 16, right: 16),
+              child: Row(
                 children: [
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        height: timerControlIconSize,
-                        width: timerControlIconSize,
+                  SizedBox(
+                    height: timerControlIconSize * 2,
+                    width: timerControlIconSize * 2,
+                    child: IconButton(
+                      iconSize: timerControlIconSize * 2,
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      splashRadius: timerControlIconSize,
+                      icon: Icon(
+                        timer?.isActive ?? false ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                        color: timer != null ? null : Colors.transparent,
+                        size: timerControlIconSize,
                       ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        height: timerControlIconSize,
-                        width: timerControlIconSize,
-                        child: IconButton(
-                          iconSize: timerControlIconSize,
-                          padding: EdgeInsets.zero,
-                          visualDensity: VisualDensity.compact,
-                          splashRadius: timerControlIconSize * 1.5,
-                          icon: Icon(timer?.isActive ?? false ? Icons.pause_rounded : Icons.play_arrow_rounded, color: timer != null ? null : Colors.transparent,),
-                          onPressed: timer != null ? () {
-                            if (timer?.isActive ?? false) { timer?.cancel(); }
-                            else { startTimer(); }
-                            setState(() {});
-                          } : null,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        height: timerControlIconSize,
-                        width: timerControlIconSize,
-                        child: (timer?.isActive ?? false) || numSeconds == Constants.NUM_SECONDS ? null : IconButton(
-                          iconSize: timerControlIconSize,
-                          padding: EdgeInsets.zero,
-                          visualDensity: VisualDensity.compact,
-                          splashRadius: timerControlIconSize * 1.5,
-                          icon: Icon(Icons.refresh_rounded, color: timer != null ? null : Colors.transparent),
-                          onPressed: timer != null ? () { setState(() => numSeconds = Constants.NUM_SECONDS); } : null,
-                        ),
-                      ),
-                    ],
+                      onPressed: timer != null ? () {
+                        if (timer?.isActive ?? false) { timer?.cancel(); }
+                        else { startTimer(); }
+                        setState(() {});
+                      } : null,
+                    ),
                   ),
-                  TextButton(
-                    onPressed: null,
-                    child: Text(
-                      timer != null ? '${numSeconds ~/ 60}:${(numSeconds % 60).toString().padLeft(2, '0')}' : '    ',
-                      style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.w600),
+                  Container(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: timer != null && numSeconds < Constants.NUM_SECONDS ? () { setState(() => numSeconds = Constants.NUM_SECONDS); } : null,
+                          child: Text(
+                            timer != null ? '${numSeconds ~/ 60}:${(numSeconds % 60).toString().padLeft(2, '0')}' : '    ',
+                            style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        Positioned(
+                          right: 2,
+                          child: (timer?.isActive ?? false) || numSeconds == Constants.NUM_SECONDS ? Container() : Icon(
+                            Icons.refresh_rounded,
+                            color: Theme.of(context).colorScheme.secondary,
+                            size: 14,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   Expanded(
@@ -665,13 +706,13 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       ],
                     ),
                   ),
-                  SizedBox(height: timerControlIconSize, width: timerControlIconSize),
+                  SizedBox(height: timerControlIconSize * 2, width: timerControlIconSize * 2),
                 ],
               ),
-              Expanded(child: buildBoard()),
-              Expanded(child: buildTabs(workingWords)),
-            ]
-          ),
+            ),
+            Expanded(child: buildBoard()),
+            Expanded(child: buildTabs(workingWords)),
+          ]
         ),
       ),
       floatingActionButton: myWordsController.text.isNotEmpty && MediaQuery.of(context).viewInsets.bottom == 0 && tabController.index == 0 ? FloatingActionButton(

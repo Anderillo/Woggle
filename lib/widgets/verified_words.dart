@@ -41,10 +41,19 @@ class VerifiedWords extends StatelessWidget {
         decoration: word.state == FoundWordState.IS_NOT_POINTS ? TextDecoration.lineThrough : null,
         decorationThickness: 2,
       ),
+      frontActions: word.state == null ? [
+        ChipAction(
+          Icons.close_rounded,
+          () {
+            word.setState(FoundWordState.IS_NOT_POINTS);
+            onUpdate();
+          },
+        ),
+      ] : null,
       actions: [
         if (word.state == FoundWordState.IS_POINTS || word.state == FoundWordState.IS_NOT_POINTS) ...[
           ChipAction(
-            Icons.close_rounded,
+            Icons.do_not_disturb_on_outlined,
             () {
               word.setState(null);
               onUpdate();
@@ -52,13 +61,6 @@ class VerifiedWords extends StatelessWidget {
           ),
         ],
         if (word.state == null) ...[
-          ChipAction(
-            Icons.remove_done_rounded,
-            () {
-              word.setState(FoundWordState.IS_NOT_POINTS);
-              onUpdate();
-            },
-          ),
           ChipAction(
             Icons.check_rounded,
             () {
