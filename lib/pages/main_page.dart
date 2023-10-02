@@ -216,9 +216,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     }
     Set<String> searchedWords = Board(boardString, 1).search(tempDictionary);
     for (FoundWord foundWord in foundWords) {
-      if (!searchedWords.contains(foundWord.word)) {
-        foundWord.setState(FoundWordState.IS_NOT_FOUND);
-      }
+      if (!searchedWords.contains(foundWord.word)) { foundWord.setState(FoundWordState.IS_NOT_FOUND); }
       else if (!dictionary.hasWord(foundWord.word).isWord) { foundWord.setState(FoundWordState.IS_NOT_WORD); }
       if (foundWord.state == null && foundWord.word.length < minWordLength) { foundWord.setState(FoundWordState.IS_TOO_SHORT); }
     }
@@ -552,8 +550,20 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                   }
                   ))
                 ).then((value) {
-                  if (!userIsFindingWords && hasModifiedDictionary) {
-                    verifyWords();
+                  if (hasModifiedDictionary) {
+                    if (words != null) {
+                      board = Board(boardString, minWordLength);
+                      words = board!.search(dictionary);
+                    }
+                    if (!userIsFindingWords && verifiedWords != null) {
+                      for (FoundWord foundWord in verifiedWords!) {
+                        if (foundWord.state != FoundWordState.IS_NOT_FOUND && foundWord.state != FoundWordState.IS_TOO_SHORT) {
+                          if (!dictionary.hasWord(foundWord.word).isWord) { foundWord.setState(FoundWordState.IS_NOT_WORD); }
+                          else if (foundWord.state == FoundWordState.IS_NOT_WORD) { foundWord.setState(null); }
+                        }
+                      }
+                    }
+                    setState(() {});
                     hasModifiedDictionary = false;
                   }
                 });
@@ -727,7 +737,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
           setState(() => userIsFindingWords = true);
         },
         child: Icon(userIsFindingWords ? Icons.check_rounded : Icons.edit_outlined),
-      ) : null,
+      ) : Container(),
     );
   }
 }
