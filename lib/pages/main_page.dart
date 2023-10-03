@@ -611,24 +611,27 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
+                        Positioned(
+                          right: 8,
+                          child: timer == null || (!(timer!.isActive) && numSeconds < Constants.NUM_SECONDS) ? Icon(
+                            Icons.refresh_rounded,
+                            color: Theme.of(context).colorScheme.secondary,
+                            size: 14,
+                          ) : Container(),
+                        ),
                         TextButton(
                           onPressed: timer == null || (!(timer!.isActive) && numSeconds < Constants.NUM_SECONDS) ? () {
                             resetTimer();
                             setState(() {});
                            } : null,
                           style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.secondary),
-                          child: Text(
-                            '${numSeconds ~/ 60}:${(numSeconds % 60).toString().padLeft(2, '0')}',
-                            style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.w600),
+                          child: Container(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: Text(
+                              '${numSeconds ~/ 60}:${(numSeconds % 60).toString().padLeft(2, '0')}',
+                              style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.w600),
+                            ),
                           ),
-                        ),
-                        Positioned(
-                          right: 2,
-                          child: timer == null || (!(timer!.isActive) && numSeconds < Constants.NUM_SECONDS) ? Icon(
-                            Icons.refresh_rounded,
-                            color: Theme.of(context).colorScheme.secondary,
-                            size: 14,
-                          ) : Container(),
                         ),
                       ],
                     ),

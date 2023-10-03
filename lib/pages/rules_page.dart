@@ -15,12 +15,15 @@ class RulesPage extends StatefulWidget {
 
 class _RulesPageState extends State<RulesPage> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  late int boardDimension;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(duration: const Duration(milliseconds: 2500), vsync: this);
     Future.delayed(const Duration(milliseconds: 500), () => _controller.forward());
+    boardDimension = widget.boardDimension;
+    if (boardDimension < 2) { boardDimension = 2; }
   }
 
   @override
@@ -41,7 +44,7 @@ class _RulesPageState extends State<RulesPage> with SingleTickerProviderStateMix
   }
 
   Widget buildPointsTable() {
-    List<int> wordLengths = [widget.minWordLength - 1];
+    List<int> wordLengths = [widget.minWordLength];
     while (wordLengths.last < 8) { wordLengths.add(wordLengths.last + 1); }
     return Container(
       padding: const EdgeInsets.all(16),
@@ -81,19 +84,19 @@ class _RulesPageState extends State<RulesPage> with SingleTickerProviderStateMix
   }
 
   Widget buildBoard() {
-    String boardString = Dice().roll(widget.boardDimension);
+    String boardString = Dice().roll(boardDimension);
     String wordToDraw = 'CORN';
     List<String> letters = [];
-    for (int i = 0; i < widget.boardDimension * widget.boardDimension; i++) {
+    for (int i = 0; i < boardDimension * boardDimension; i++) {
       if (i == 0) { letters.add(wordToDraw[0]); }
-      else if (i == widget.boardDimension + 1) { letters.add(wordToDraw[1]); }
+      else if (i == boardDimension + 1) { letters.add(wordToDraw[1]); }
       else if (i == 1) { letters.add(wordToDraw[2]); }
-      else if (i == widget.boardDimension) { letters.add(wordToDraw[3]); }
+      else if (i == boardDimension) { letters.add(wordToDraw[3]); }
       else { letters.add(boardString[i]); }
     }
 
     double width = MediaQuery.of(context).size.width * 0.7;
-    double fontSize = MediaQuery.of(context).size.height / (widget.boardDimension * 7);
+    double fontSize = MediaQuery.of(context).size.height / (boardDimension * 7);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -106,7 +109,7 @@ class _RulesPageState extends State<RulesPage> with SingleTickerProviderStateMix
               GridView.count(
                 physics: const NeverScrollableScrollPhysics(),
                 shrinkWrap: true,
-                crossAxisCount: widget.boardDimension,
+                crossAxisCount: boardDimension,
                 children: letters.map((letter) => Center(
                   child: Text(
                     letter,
@@ -117,7 +120,7 @@ class _RulesPageState extends State<RulesPage> with SingleTickerProviderStateMix
               AnimatedBuilder(
                 animation: _controller,
                 builder: (context, child) {
-                  double squareMiddle = width / widget.boardDimension / 2;
+                  double squareMiddle = width / boardDimension / 2;
                   return CustomPaint(
                     painter: LinePainter(
                       _controller.value,
@@ -163,7 +166,7 @@ class _RulesPageState extends State<RulesPage> with SingleTickerProviderStateMix
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               buildHeaderBlock('How it Works'),
-              buildBodyBlock('The goal of the game is to find words from the given grid.'),
+              buildBodyBlock('The goal of the game is to find words from the letter grid.'),
               buildBoard(),
               buildBodyBlock('You can'),
               ...['Go in any direction', 'Cross your own path'].map((String instruction) => buildRuleItem(
