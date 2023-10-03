@@ -195,6 +195,7 @@ class _RulesPageState extends State<RulesPage> with SingleTickerProviderStateMix
               buildSpace(),
               buildHeaderBlock('That\'s it! Happy Woggling!!'),
               buildSpace(),
+              buildSpace(),
             ],
           ),
         ),
