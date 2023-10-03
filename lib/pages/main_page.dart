@@ -612,20 +612,23 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       alignment: Alignment.center,
                       children: [
                         TextButton(
-                          onPressed: timer != null && numSeconds < Constants.NUM_SECONDS ? () { setState(() => numSeconds = Constants.NUM_SECONDS); } : null,
+                          onPressed: timer == null || (!(timer!.isActive) && numSeconds < Constants.NUM_SECONDS) ? () {
+                            resetTimer();
+                            setState(() {});
+                           } : null,
                           style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.secondary),
                           child: Text(
-                            timer != null ? '${numSeconds ~/ 60}:${(numSeconds % 60).toString().padLeft(2, '0')}' : '    ',
+                            '${numSeconds ~/ 60}:${(numSeconds % 60).toString().padLeft(2, '0')}',
                             style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.w600),
                           ),
                         ),
                         Positioned(
                           right: 2,
-                          child: (timer?.isActive ?? false) || numSeconds == Constants.NUM_SECONDS ? Container() : Icon(
+                          child: timer == null || (!(timer!.isActive) && numSeconds < Constants.NUM_SECONDS) ? Icon(
                             Icons.refresh_rounded,
                             color: Theme.of(context).colorScheme.secondary,
                             size: 14,
-                          ),
+                          ) : Container(),
                         ),
                       ],
                     ),
