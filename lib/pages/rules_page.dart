@@ -186,11 +186,11 @@ class _RulesPageState extends State<RulesPage> with SingleTickerProviderStateMix
               buildBodyBlock('Starting with whoever got the most words, take turns reading your lists.'),
               buildBodyBlock('If two people got the same word, both of you cross it off your lists. Otherwise, it counts as points!'),
               buildBodyBlock('Word Rules'),
-              ...['English words', 'Archaic', 'Informal', 'Proper adjectives'].map((String instruction) => buildRuleItem(
+              ...['English words', 'Archaic', 'Informal'].map((String instruction) => buildRuleItem(
                 const Icon(Icons.check_circle_outline_outlined, color: isPointsColor),
                 instruction,
               )),
-              ...['Dialectal', 'Obsolete', 'Slang', 'Proper nouns'].map((String instruction) => buildRuleItem(
+              ...['Dialectal', 'Obsolete', 'Slang', 'Proper (nouns or adjectives)'].map((String instruction) => buildRuleItem(
                 const Icon(Icons.highlight_off_rounded, color: isNotWordColor),
                 instruction,
               )),
