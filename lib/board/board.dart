@@ -63,6 +63,8 @@ class Board {
       else if (word2.word.length > word1.word.length) { return 1; }
       return word1.word.compareTo(word2.word);
     });
+    Set<String> uniqueWords = {};
+    results.retainWhere((word) => uniqueWords.add(word.word));
     return results.toSet();
   }
 }

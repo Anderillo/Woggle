@@ -55,6 +55,8 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
   final GlobalKey popupButtonKey = GlobalKey<State>(); 
 
+  ScrollController myWordsScrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -427,6 +429,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
             children: [
               SingleChildScrollView(
                 key: const PageStorageKey('myWords'),
+                controller: myWordsScrollController,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: userIsFindingWords ? Container(
@@ -621,14 +624,14 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       children: [
                         Positioned(
                           right: 8,
-                          child: timer == null || (!(timer!.isActive) && numSeconds < Constants.NUM_SECONDS) ? Icon(
+                          child: boardString != '' && (timer == null || (!(timer!.isActive) && numSeconds < Constants.NUM_SECONDS)) ? Icon(
                             Icons.refresh_rounded,
                             color: Theme.of(context).colorScheme.secondary,
                             size: 14,
                           ) : Container(),
                         ),
                         TextButton(
-                          onPressed: timer == null || (!(timer!.isActive) && numSeconds < Constants.NUM_SECONDS) ? () {
+                          onPressed: boardString != '' && (timer == null || (!(timer!.isActive) && numSeconds < Constants.NUM_SECONDS)) ? () {
                             resetTimer();
                             setState(() {});
                            } : null,
@@ -637,7 +640,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                             padding: const EdgeInsets.only(right: 12),
                             child: Text(
                               '${numSeconds ~/ 60}:${(numSeconds % 60).toString().padLeft(2, '0')}',
-                              style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.w600),
+                              style: TextStyle(color: boardString != '' ? Theme.of(context).colorScheme.secondary : Colors.transparent, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ),
@@ -745,6 +748,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
         onPressed: userIsFindingWords ? () {
           FocusManager.instance.primaryFocus?.unfocus();
           verifyWords();
+          myWordsScrollController.jumpTo(0);
           setState(() => userIsFindingWords = false);
         } : () {
           verifiedWords = null;
