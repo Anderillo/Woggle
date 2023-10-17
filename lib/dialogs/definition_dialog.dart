@@ -30,36 +30,47 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
   }
 
   Widget buildDefinition(String? definition) {
-    String toDisplay = definition ?? 'No definition found.';
-
+    List<String> definitions = (definition ?? 'No definition found.').split(' / ');
     TextStyle linkStyle = TextStyle(color: Theme.of(context).colorScheme.secondary);
-    List<TextSpan> spans = [];
-    List<String> words = toDisplay.split(' ');
-    for (int i = 0; i < words.length; i++) {
-      String word = words[i];
-      if (word[0] != '[') { spans.add(TextSpan(text: i > 0 ? ' $word' : word.capitalize())); }
-      else {
-        String cleanedWord = word.replaceAll('[', '').replaceAll(']', '');
-        if (widget.getWord == null) { spans.add(TextSpan(text: i > 0 ? ' $cleanedWord' : cleanedWord.capitalize())); }
+    List<Widget> definitionWidgets = [];
+    for (int i = 0; i < definitions.length; i++) {
+      List<TextSpan> spans = [];
+      if (definitions.length > 1) { spans.add(TextSpan(text: '${i + 1}. ')); }
+      List<String> words = definitions[i].split(' ');
+      for (int j = 0; j < words.length; j++) {
+        String word = words[j];
+        if (word[0] != '[') { spans.add(TextSpan(text: j > 0 ? ' $word' : word.capitalize())); }
         else {
-          spans.add(TextSpan(
-            text: i > 0 ? ' $cleanedWord' : cleanedWord.capitalize(),
-            style: linkStyle,
-            recognizer: TapGestureRecognizer()
-              ..onTap = () {
-                Word newWord = widget.getWord!(cleanedWord);
-                Navigator.pop(context);
-                showDialog(
-                  context: context,
-                  builder: (BuildContext dialogContext) => DefinitionDialog(newWord, widget.getWord),
-                );
-              }
-          ));
+          String cleanedWord = word.replaceAll('[', '').replaceAll(']', '');
+          if (widget.getWord == null) { spans.add(TextSpan(text: j > 0 ? ' $cleanedWord' : cleanedWord.capitalize())); }
+          else {
+            spans.add(TextSpan(
+              text: j > 0 ? ' $cleanedWord' : cleanedWord.capitalize(),
+              style: linkStyle,
+              recognizer: TapGestureRecognizer()
+                ..onTap = () {
+                  Word newWord = widget.getWord!(cleanedWord);
+                  Navigator.pop(context);
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext dialogContext) => DefinitionDialog(newWord, widget.getWord),
+                  );
+                }
+            ));
+          }
         }
       }
+      definitionWidgets.add(Container(
+        padding: const EdgeInsets.only(top: 16),
+        child: RichText(text: TextSpan(children: spans)),
+      ));
     }
 
-    return RichText(text: TextSpan(children: spans));
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: definitionWidgets,
+    );
   }
 
   @override
