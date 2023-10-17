@@ -8,7 +8,8 @@ class VerifiedWords extends StatelessWidget {
   final Function() onUpdate;
   final Function(String) addWord;
   final Function(String) removeWord;
-  const VerifiedWords(this.verifiedWords, this.numWords, this.onUpdate, this.addWord, this.removeWord, {super.key});
+  final Function(String) getWord;
+  const VerifiedWords(this.verifiedWords, this.numWords, this.onUpdate, this.addWord, this.removeWord, this.getWord, {super.key});
 
   static String getNumVerifiedWords(List<FoundWord>? verifiedWords) {
     return (verifiedWords ?? []).where((word) => word.state == null || word.state == FoundWordState.IS_POINTS || word.state == FoundWordState.IS_NOT_POINTS).length.toString();
@@ -28,7 +29,7 @@ class VerifiedWords extends StatelessWidget {
                 onPressed: () {
                   word.setState(FoundWordState.IS_NOT_WORD);
                   onUpdate();
-                  removeWord(word.word);
+                  removeWord(word.word.word);
                   Navigator.pop(modalContext);
                 },
               ),
@@ -75,11 +76,12 @@ class VerifiedWords extends StatelessWidget {
             () {
               word.setState(null);
               onUpdate();
-              addWord(word.word);
+              addWord(word.word.word);
             },
           ),
         ],
       ],
+      getWord: getWord,
     );
   }
   
@@ -101,7 +103,7 @@ class VerifiedWords extends StatelessWidget {
         else if (word1.state == FoundWordState.IS_TOO_SHORT) { return -1; }
         else if (word2.state == FoundWordState.IS_TOO_SHORT) { return 1; }
       }
-      return word1.word.compareTo(word2.word);
+      return word1.word.word.compareTo(word2.word.word);
     });
     int index = verifiedWords!.indexWhere((word) => [FoundWordState.IS_NOT_WORD, FoundWordState.IS_NOT_FOUND, FoundWordState.IS_TOO_SHORT].contains(word.state));
     if (index < 0) { index = verifiedWords!.length; }

@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:woggle/board/word.dart';
 import 'package:woggle/utils/utils.dart';
 
 enum FoundWordState {
@@ -19,14 +20,14 @@ const Color isNotFoundColor = Color(0xFF333138);
 const Color isTooShortColor = Color(0xFF333138);
 
 class FoundWord {
-  String word;
+  Word word;
   int? numPoints;
   FoundWordState? state;
   FoundWord(this.word);
 
   void setState(FoundWordState? state) {
     this.state = state;
-    if (this.state == FoundWordState.IS_POINTS) { numPoints = getPointsFromWordLength(word.length); }
+    if (this.state == FoundWordState.IS_POINTS) { numPoints = getPointsFromWordLength(word.word.length); }
     else { numPoints = 0; }
   }
 
