@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:woggle/board/word.dart';
 import 'package:woggle/dictionary/dictionary.dart';
 import 'package:woggle/dictionary/dictionary_node.dart';
 
@@ -22,16 +23,16 @@ class Board {
     }
   }
 
-  List<String> searchHelper(Dictionary dictionary, List<List<bool>> visited, String word, int i, int j) {
+  List<Word> searchHelper(Dictionary dictionary, List<List<bool>> visited, String word, int i, int j) {
     if (i < 0 || i >= visited.length || j < 0 || j >= visited.length || visited[i][j]) { return []; }
     String workingWord = word + board[i][j];
     visited[i][j] = true;
-    List<String> result = [];
+    List<Word> result = [];
     bool shouldContinue = true;
     if (workingWord.length >= minWordLength) {
       WordSearchResult searchResult = dictionary.hasWord(workingWord);
       if (!searchResult.hasChildren) { shouldContinue = false; }
-      if (searchResult.isWord) { result.add(workingWord); }
+      if (searchResult.isWord) { result.add(Word(workingWord, searchResult.definition)); }
     }
     if (shouldContinue) {
       result.addAll([
@@ -48,8 +49,8 @@ class Board {
     return result;
   }
 
-  Set<String> search(Dictionary dictionary) {
-    List<String> results = [];
+  Set<Word> search(Dictionary dictionary) {
+    List<Word> results = [];
     for (int i = 0; i < board.length; i++) {
       for (int j = 0; j < board[i].length; j++) {
         List<List<bool>> visited = [];
@@ -58,9 +59,9 @@ class Board {
       }
     }
     results.sort((word1, word2) {
-      if (word1.length > word2.length) { return -1; }
-      else if (word2.length > word1.length) { return 1; }
-      return word1.compareTo(word2);
+      if (word1.word.length > word2.word.length) { return -1; }
+      else if (word2.word.length > word1.word.length) { return 1; }
+      return word1.word.compareTo(word2.word);
     });
     return results.toSet();
   }

@@ -1,14 +1,16 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:woggle/board/found_word.dart';
+import 'package:woggle/board/word.dart';
 import 'package:woggle/widgets/word_chip.dart';
 
 class AllWords extends StatelessWidget {
-  final List<String>? workingWords;
+  final List<Word>? workingWords;
   final List<FoundWord>? verifiedWords;
   final Function()? onSearch;
   final Function(String)? removeWord;
-  const AllWords(this.workingWords, this.verifiedWords, this.onSearch, this.removeWord, {super.key});
+  final Function(String) getWord;
+  const AllWords(this.workingWords, this.verifiedWords, this.onSearch, this.removeWord, this.getWord, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +49,7 @@ class AllWords extends StatelessWidget {
                     TextButton(
                       child: const Text('Remove from dictionary'),
                       onPressed: () {
-                        removeWord!(word);
+                        removeWord!(word.word);
                         Navigator.pop(modalContext);
                       },
                     ),
@@ -56,6 +58,7 @@ class AllWords extends StatelessWidget {
               });
             } : null,
             color: backgroundColor,
+            getWord: getWord,
           );
         }).toList(),
       );

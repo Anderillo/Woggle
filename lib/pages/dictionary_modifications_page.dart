@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:woggle/board/word.dart';
 import 'package:woggle/widgets/word_chip.dart';
 
 class DictionaryModificationsPage extends StatefulWidget {
@@ -59,7 +60,7 @@ class _DictionaryModificationsPageState extends State<DictionaryModificationsPag
             const SizedBox(height: 8),
             Wrap(
               children: workingAddedWords.map((word) => WordChip(
-                word,
+                Word(word, null),
                 actions: [
                   ChipAction(
                     Icons.remove_circle_outline_rounded,
@@ -85,7 +86,7 @@ class _DictionaryModificationsPageState extends State<DictionaryModificationsPag
         padding: const EdgeInsets.all(8.0),
         child: Wrap(
           children: workingRemovedWords.map((word) => WordChip(
-            word,
+            Word(word, null),
             actions: [
               ChipAction(
                 Icons.control_point_rounded,

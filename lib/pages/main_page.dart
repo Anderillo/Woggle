@@ -10,9 +10,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:woggle/board/board.dart';
 import 'package:woggle/board/dice.dart';
 import 'package:woggle/board/found_word.dart';
+import 'package:woggle/board/word.dart';
 import 'package:woggle/dialogs/join_game_dialog.dart';
 import 'package:woggle/dialogs/min_word_length_dialog.dart';
 import 'package:woggle/dictionary/dictionary.dart';
+import 'package:woggle/dictionary/dictionary_node.dart';
 import 'package:woggle/pages/dictionary_modifications_page.dart';
 import 'package:woggle/pages/rules_page.dart';
 import 'package:woggle/utils/constants.dart';
@@ -31,7 +33,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   late Dictionary dictionary;
   bool isDictionaryLoaded = false;
   Board? board;
-  Set<String>? words;
+  Set<Word>? words;
   TextEditingController boardStringController = TextEditingController();
   TextEditingController myWordsController = TextEditingController();
   String boardString = '';
@@ -85,7 +87,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     
     // ignore: use_build_context_synchronously
     String dictionaryFile = await DefaultAssetBundle.of(context).loadString('assets/dictionary.txt');
-    for (String word in dictionaryFile.split('\n')) { dictionary.addWord(word); }
+    for (String line in dictionaryFile.split('\n')) { dictionary.addWord(line.split(' ')[0], line.split(' ').sublist(1).join(' ')); }
     setState(() => isDictionaryLoaded = true);
   }
 
@@ -208,17 +210,19 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       wordsToAdd.add(currentWord.trim());
 
       for (String word in wordsToAdd) {
-        if (foundWords.firstWhereOrNull((foundWord) => foundWord.word == word) == null) {
-          foundWords.add(FoundWord(word));
-          tempDictionary.addWord(word);
+        if (foundWords.firstWhereOrNull((foundWord) => foundWord.word.word == word) == null) {
+          foundWords.add(FoundWord(Word(word, null)));
+          tempDictionary.addWord(word, null);
         }
       }
     }
-    Set<String> searchedWords = Board(boardString, 1).search(tempDictionary);
+    Set<Word> searchedWords = Board(boardString, 1).search(tempDictionary);
     for (FoundWord foundWord in foundWords) {
-      if (!searchedWords.contains(foundWord.word)) { foundWord.setState(FoundWordState.IS_NOT_FOUND); }
-      else if (!dictionary.hasWord(foundWord.word).isWord) { foundWord.setState(FoundWordState.IS_NOT_WORD); }
-      if (foundWord.state == null && foundWord.word.length < minWordLength) { foundWord.setState(FoundWordState.IS_TOO_SHORT); }
+      if (searchedWords.firstWhereOrNull((word) => word.word == foundWord.word.word) == null) { foundWord.setState(FoundWordState.IS_NOT_FOUND); }
+      WordSearchResult wordSearchResult = dictionary.hasWord(foundWord.word.word);
+      if (!wordSearchResult.isWord) { foundWord.setState(FoundWordState.IS_NOT_WORD); }
+      else { foundWord.word.definition = wordSearchResult.definition; }
+      if (foundWord.state == null && foundWord.word.word.length < minWordLength) { foundWord.setState(FoundWordState.IS_TOO_SHORT); }
     }
 
     if (words == null) {
@@ -339,10 +343,10 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
             }
             if (!userIsFindingWords && verifiedWords != null) {
               for (var verifiedWord in verifiedWords!) {
-                if (verifiedWord.state == null && verifiedWord.word.length < minWordLength) {
+                if (verifiedWord.state == null && verifiedWord.word.word.length < minWordLength) {
                   verifiedWord.setState(FoundWordState.IS_TOO_SHORT);
                 }
-                else if (verifiedWord.state == FoundWordState.IS_TOO_SHORT && verifiedWord.word.length >= minWordLength) {
+                else if (verifiedWord.state == FoundWordState.IS_TOO_SHORT && verifiedWord.word.word.length >= minWordLength) {
                   verifiedWord.setState(null);
                 }
               }
@@ -401,7 +405,9 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget buildTabs(List<String>? workingWords) {
+  Word getWord(String word) => Word(word, dictionary.hasWord(word).definition);
+
+  Widget buildTabs(List<Word>? workingWords) {
     return Column(
       children: [
         Container(
@@ -446,6 +452,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                     () => setState(() {}),
                     addWord,
                     removeWord,
+                    getWord,
                   ),
                 ),
               ),
@@ -463,6 +470,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       setState(() {});
                     } : null,
                     (String word) => removeWord(word),
+                    getWord,
                   ),
                 ),
               ),
@@ -496,10 +504,10 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    List<String>? workingWords;
+    List<Word>? workingWords;
     if (words != null) {
       workingWords = [...words!.toList()];
-      workingWords.removeWhere((word) => removedWords.contains(word));
+      workingWords.removeWhere((word) => removedWords.contains(word.word));
     }
     double timerControlIconSize = 14;
     List<PopupMenuItem<String>> appBarActions = getAppBarActions();
@@ -558,7 +566,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                     if (!userIsFindingWords && verifiedWords != null) {
                       for (FoundWord foundWord in verifiedWords!) {
                         if (foundWord.state != FoundWordState.IS_NOT_FOUND && foundWord.state != FoundWordState.IS_TOO_SHORT) {
-                          if (!dictionary.hasWord(foundWord.word).isWord) { foundWord.setState(FoundWordState.IS_NOT_WORD); }
+                          if (!dictionary.hasWord(foundWord.word.word).isWord) { foundWord.setState(FoundWordState.IS_NOT_WORD); }
                           else if (foundWord.state == FoundWordState.IS_NOT_WORD) { foundWord.setState(null); }
                         }
                       }

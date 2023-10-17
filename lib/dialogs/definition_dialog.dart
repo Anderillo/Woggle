@@ -1,56 +1,82 @@
-import 'dart:async';
-import 'dart:io';
-
-import 'package:woggle/utils/utils.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:woggle/board/word.dart';
+import 'package:woggle/utils/utils.dart';
 
 class DefinitionDialog extends StatefulWidget {
-  final String word;
-  const DefinitionDialog(this.word, {super.key});
+  final Word word;
+  final Function(String)? getWord;
+  const DefinitionDialog(this.word, this.getWord, {super.key});
 
   @override
   State<DefinitionDialog> createState() => _DefinitionDialogState();
 }
 
 class _DefinitionDialogState extends State<DefinitionDialog> {
-  String? definition;
-
   @override
   void initState() {
     super.initState();
-    getDefinition(widget.word).then((String definition) {
-      if (!mounted) { return; }
-      setState(() => this.definition = definition);
-    }).catchError((error) {
-      String? message;
-      if (!mounted) { return; }
-      if (error is TimeoutException) { message = 'The request timed out.'; }
-      else if (error is SocketException) { message = 'Internet connection error.'; }
-      setState(() => definition = message ?? 'Sorry, no definition found.');
-    });
+    // getDefinition(widget.word).then((String definition) {
+    //   if (!mounted) { return; }
+    //   setState(() => this.definition = definition);
+    // }).catchError((error) {
+    //   String? message;
+    //   if (!mounted) { return; }
+    //   if (error is TimeoutException) { message = 'The request timed out.'; }
+    //   else if (error is SocketException) { message = 'Internet connection error.'; }
+    //   setState(() => definition = message ?? 'Sorry, no definition found.');
+    // });
+  }
+
+  Widget buildDefinition(String? definition) {
+    String toDisplay = definition ?? 'No definition found.';
+
+    TextStyle linkStyle = TextStyle(color: Theme.of(context).colorScheme.secondary);
+    List<TextSpan> spans = [];
+    List<String> words = toDisplay.split(' ');
+    for (int i = 0; i < words.length; i++) {
+      String word = words[i];
+      if (word[0] != '[') { spans.add(TextSpan(text: i > 0 ? ' $word' : word.capitalize())); }
+      else {
+        String cleanedWord = word.replaceAll('[', '').replaceAll(']', '');
+        if (widget.getWord == null) { spans.add(TextSpan(text: i > 0 ? ' $cleanedWord' : cleanedWord.capitalize())); }
+        else {
+          spans.add(TextSpan(
+            text: i > 0 ? ' $cleanedWord' : cleanedWord.capitalize(),
+            style: linkStyle,
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                Word newWord = widget.getWord!(cleanedWord);
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (BuildContext dialogContext) => DefinitionDialog(newWord, widget.getWord),
+                );
+              }
+          ));
+        }
+      }
+    }
+
+    return RichText(text: TextSpan(children: spans));
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.word),
+      title: Text(widget.word.word),
       content: SizedBox(
         width: MediaQuery.of(context).size.width,
-        child: definition != null
-          ? Text(definition!)
-          : const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [CircularProgressIndicator()],
-          ),
+        child: buildDefinition(widget.word.definition),
       ),
       actions: [
         TextButton(
           onPressed: () async {
-            final Uri url = Uri.parse('https://www.dictionary.com/browse/${widget.word}');
+            final Uri url = Uri.parse('https://www.dictionary.com/browse/${widget.word.word}');
             if (!await launchUrl(url)) {
               SnackBar snackBar = SnackBar(
-                content: Text('Could not launch Dictionary.com for "${widget.word}"'),
+                content: Text('Could not launch Dictionary.com for "${widget.word.word}"'),
               );
               // ignore: use_build_context_synchronously
               ScaffoldMessenger.of(context).showSnackBar(snackBar);

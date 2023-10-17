@@ -77,3 +77,9 @@ int getPointsFromWordLength(int wordLength) {
   else if (wordLength >= 8) { return 11; }
   return -1;
 }
+
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
+  }
+}

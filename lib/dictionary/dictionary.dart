@@ -11,8 +11,8 @@ class Dictionary {
 
   final DictionaryNode root = DictionaryNode();
 
-  void addWord(String word) {
-    root.addWord(word.toLowerCase().trim());
+  void addWord(String word, String? definition) {
+    root.addWord(word.toLowerCase().trim(), definition?.trim());
   }
 
   WordSearchResult hasWord(String word) {

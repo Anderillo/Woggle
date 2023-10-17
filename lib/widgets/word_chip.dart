@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:woggle/board/word.dart';
+import 'package:woggle/dialogs/definition_dialog.dart';
 
 class WordChip extends StatelessWidget {
-  final String word;
+  final Word word;
   final String? wordExtension;
   final Function()? onLongPress;
   final Color? color;
   final TextStyle? wordStyle;
   final List<ChipAction>? frontActions;
   final List<ChipAction>? actions;
-  const WordChip(this.word, {this.wordExtension, this.onLongPress, this.color, this.wordStyle, this.frontActions, this.actions, super.key});
+  final Function(String)? getWord;
+  const WordChip(this.word, {this.wordExtension, this.onLongPress, this.color, this.wordStyle, this.frontActions, this.actions, this.getWord, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -17,14 +19,10 @@ class WordChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: ElevatedButton(
         onPressed: () async {
-          final Uri url = Uri.parse('https://www.dictionary.com/browse/$word');
-          if (!await launchUrl(url)) {
-            SnackBar snackBar = SnackBar(
-              content: Text('Could not launch Dictionary.com for "$word"'),
-            );
-            // ignore: use_build_context_synchronously
-            ScaffoldMessenger.of(context).showSnackBar(snackBar);
-          }
+          showDialog(
+            context: context,
+            builder: (BuildContext dialogContext) => DefinitionDialog(word, getWord),
+          );
         },
         onLongPress: onLongPress,
         style: ElevatedButton.styleFrom(
@@ -41,7 +39,7 @@ class WordChip extends StatelessWidget {
             if (frontActions != null) ...frontActions!,
             SizedBox(width: frontActions != null ? 2 : 16, height: 34),
             Text(
-              '$word${wordExtension ?? ''}',
+              '${word.word}${wordExtension ?? ''}',
               style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color).merge(wordStyle),
             ),
             SizedBox(width: actions != null ? 2 : 16, height: 34),
