@@ -28,7 +28,7 @@ class MainApp extends StatelessWidget {
           valueIndicatorTextStyle: TextStyle(color: Colors.white),
         ),
       ),
-      home: Builder(builder: (builderContext) => MainPage()),
+      home: Builder(builder: (builderContext) => const MainPage()),
     );
   }
 }

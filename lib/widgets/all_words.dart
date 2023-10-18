@@ -33,7 +33,7 @@ class AllWords extends StatelessWidget {
     else if (workingWords!.isNotEmpty) {
       return Wrap(
         children: workingWords!.map((word) {
-          FoundWord? foundWord = verifiedWords?.firstWhereOrNull((verifiedWord) => verifiedWord.word == word);
+          FoundWord? foundWord = verifiedWords?.firstWhereOrNull((verifiedWord) => verifiedWord.word.word == word.word);
           Color? backgroundColor = Colors.grey[700];
           if (foundWord != null) {
             if (foundWord.state == null || foundWord.state == FoundWordState.IS_POINTS) { backgroundColor = isPointsColor; }

@@ -14,9 +14,11 @@ class DefinitionDialog extends StatefulWidget {
 }
 
 class _DefinitionDialogState extends State<DefinitionDialog> {
+  List<Word> wordsSoFar = [];
   @override
   void initState() {
     super.initState();
+    wordsSoFar.add(widget.word);
     // getDefinition(widget.word).then((String definition) {
     //   if (!mounted) { return; }
     //   setState(() => this.definition = definition);
@@ -50,11 +52,7 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
               recognizer: TapGestureRecognizer()
                 ..onTap = () {
                   Word newWord = widget.getWord!(cleanedWord);
-                  Navigator.pop(context);
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext dialogContext) => DefinitionDialog(newWord, widget.getWord),
-                  );
+                  setState(() => wordsSoFar.add(newWord));
                 }
             ));
           }
@@ -73,21 +71,44 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
     );
   }
 
+  Widget buildCloseButton() {
+    double iconSize = 24;
+    return IconButton(
+      iconSize: iconSize * 1.5,
+      padding: EdgeInsets.zero,
+      visualDensity: VisualDensity.compact,
+      splashRadius: iconSize * 0.75,
+      icon: Icon(Icons.close_rounded, size: iconSize),
+      onPressed: () => Navigator.pop(context),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    Word currentWord = wordsSoFar.last;
     return AlertDialog(
-      title: Text(widget.word.word),
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(currentWord.word),
+          buildCloseButton(),
+        ],
+      ),
       content: SizedBox(
         width: MediaQuery.of(context).size.width,
-        child: buildDefinition(widget.word.definition),
+        child: buildDefinition(currentWord.definition),
       ),
       actions: [
         TextButton(
+          onPressed: wordsSoFar.length > 1 ? () => setState(() => wordsSoFar.removeLast()) : null,
+          child: Text('Back', style: TextStyle(color: wordsSoFar.length > 1 ? null : Colors.transparent),),
+        ),
+        TextButton(
           onPressed: () async {
-            final Uri url = Uri.parse('https://www.dictionary.com/browse/${widget.word.word}');
+            final Uri url = Uri.parse('https://www.dictionary.com/browse/${currentWord.word}');
             if (!await launchUrl(url)) {
               SnackBar snackBar = SnackBar(
-                content: Text('Could not launch Dictionary.com for "${widget.word.word}"'),
+                content: Text('Could not launch Dictionary.com for "${currentWord.word}"'),
               );
               // ignore: use_build_context_synchronously
               ScaffoldMessenger.of(context).showSnackBar(snackBar);
@@ -97,7 +118,6 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
           },
           child: const Text('Dictionary.com'),
         ),
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
       ],
       actionsAlignment: MainAxisAlignment.spaceBetween,
       actionsPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
