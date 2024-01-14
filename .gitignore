@@ -44,3 +44,8 @@ app.*.map.json
 /android/app/release
 
 /assets/secrets.json
+
+# Web
+.firebase
+.github
+.firebaserc
