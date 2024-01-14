@@ -199,7 +199,13 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
   Future<void> verifyWords() async {
     showLoader(context);
-    List<String> myWords = myWordsController.text.trim().toLowerCase().split('\n');
+    List<String> myWords = [];
+    List<String> myWordsNewlines = myWordsController.text.trim().toLowerCase().split('\n');
+    for (String word in myWordsNewlines) {
+      if (word.trim().isNotEmpty) {
+        myWords.addAll(word.split(',').map((w) => w.trim()).where((w) => w.isNotEmpty));
+      }
+    }
     List<FoundWord> foundWords = [];
     Dictionary tempDictionary = Dictionary();
     for (int i = 0; i < myWords.length; i++) {
@@ -457,7 +463,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                         key: const PageStorageKey('myWordsTextField'),
                         controller: myWordsController,
                         keyboardType: TextInputType.multiline,
-                        onChanged: (String word) => setState(() {}),
+                        onChanged: (String word) => setState(() => verifiedWords = null),
                         minLines: 2,
                         maxLines: null,
                         decoration: const InputDecoration(
@@ -770,13 +776,10 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
         elevation: 0,
         onPressed: userIsFindingWords ? () {
           FocusManager.instance.primaryFocus?.unfocus();
-          verifyWords();
+          if (verifiedWords == null) { verifyWords(); }
           myWordsScrollController.jumpTo(0);
           setState(() => userIsFindingWords = false);
-        } : () {
-          verifiedWords = null;
-          setState(() => userIsFindingWords = true);
-        },
+        } : () { setState(() => userIsFindingWords = true); },
         child: Icon(userIsFindingWords ? Icons.check_rounded : Icons.edit_outlined),
       ) : Container(),
     );

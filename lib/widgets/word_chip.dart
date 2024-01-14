@@ -16,7 +16,7 @@ class WordChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      padding: const EdgeInsets.all(4),
       child: ElevatedButton(
         onPressed: () async {
           showDialog(
@@ -28,8 +28,6 @@ class WordChip extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           elevation: 0,
           backgroundColor: color ?? Colors.grey[700],
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.0)),
-          // padding: const EdgeInsets.symmetric(horizontal: 12),
           minimumSize: Size.zero,
           padding: EdgeInsets.zero,
         ),
@@ -37,12 +35,15 @@ class WordChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (frontActions != null) ...frontActions!,
-            SizedBox(width: frontActions != null ? 2 : 16, height: 34),
-            Text(
-              '${word.word}${wordExtension ?? ''}',
-              style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color).merge(wordStyle),
+            SizedBox(width: frontActions?.isNotEmpty ?? false ? 2 : 16, height: 34),
+            Container(
+              padding: EdgeInsets.symmetric(vertical: (frontActions?.isEmpty ?? true) && (actions?.isEmpty ?? true) ? 14 : 0),
+              child: Text(
+                '${word.word}${wordExtension ?? ''}',
+                style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color).merge(wordStyle),
+              ),
             ),
-            SizedBox(width: actions != null ? 2 : 16, height: 34),
+            SizedBox(width: actions?.isNotEmpty ?? false ? 2 : 16, height: 34),
             if (actions != null) ...actions!,
           ],
         ),
@@ -63,7 +64,7 @@ class ChipAction extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.all(6),
+        padding: const EdgeInsets.all(2),
         child: IconButton(
           splashRadius: iconSize * 0.8,
           constraints: BoxConstraints(maxHeight: iconSize, maxWidth: iconSize),
