@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -198,7 +199,13 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
   Future<void> verifyWords() async {
     showLoader(context);
-    List<String> myWords = myWordsController.text.trim().toLowerCase().split('\n');
+    List<String> myWords = [];
+    List<String> myWordsNewlines = myWordsController.text.trim().toLowerCase().split('\n');
+    for (String word in myWordsNewlines) {
+      if (word.trim().isNotEmpty) {
+        myWords.addAll(word.split(',').map((w) => w.trim()).where((w) => w.isNotEmpty));
+      }
+    }
     List<FoundWord> foundWords = [];
     Dictionary tempDictionary = Dictionary();
     for (int i = 0; i < myWords.length; i++) {
@@ -258,7 +265,12 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                           Navigator.pop(dialogContext);
                           startGame(shareAction: (String generatedString) async {
                             String toShare = await boardSecrets(generatedString, encrypt: true);
-                            await Share.shareWithResult(toShare, subject: 'Woggle Board');
+                            if (!kIsWeb) { await Share.shareWithResult(toShare, subject: 'Woggle Board'); }
+                            else {
+                              await Clipboard.setData(ClipboardData(text: toShare));
+                              // ignore: use_build_context_synchronously
+                              showSnackBar(context, 'Encrypted board copied successfully');
+                            }
                           });
                         },
                       ),
@@ -269,11 +281,16 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                           Navigator.pop(dialogContext);
                           startGame(shareAction: (String generatedString) async {
                             String toShare = '\n\n\n${convertStringToEmojis(generatedString)}';
-                            await Share.shareWithResult(toShare, subject: 'Woggle Board');
+                            if (!kIsWeb) { await Share.shareWithResult(toShare, subject: 'Woggle Board'); }
+                            else {
+                              await Clipboard.setData(ClipboardData(text: toShare));
+                              // ignore: use_build_context_synchronously
+                              showSnackBar(context, 'Board copied successfully');
+                            }
                           });
                         },
                       ),
-                      ListTile(
+                      if (!kIsWeb) ListTile(
                         leading: const Icon(Icons.diversity_3_rounded),
                         title: const Text('Mixed users'),
                         onTap: () async {
@@ -313,7 +330,12 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
           onTap: () async {
             FocusManager.instance.primaryFocus?.unfocus();
             String toShare = convertStringToEmojis(boardString);
-            await Share.shareWithResult(toShare, subject: 'Woggle Board');
+            if (!kIsWeb) { await Share.shareWithResult(toShare, subject: 'Woggle Board'); }
+            else {
+              await Clipboard.setData(ClipboardData(text: toShare));
+              // ignore: use_build_context_synchronously
+              showSnackBar(context, 'Board copied successfully');
+            }
           },
           child: const ListTile(title: Text('Share Board')),
         ),
@@ -428,6 +450,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
           Expanded(
             child: TabBarView(
               controller: tabController,
+              physics: kIsWeb ? const NeverScrollableScrollPhysics() : const AlwaysScrollableScrollPhysics(),
               children: [
                 SingleChildScrollView(
                   key: const PageStorageKey('myWords'),
@@ -440,7 +463,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                         key: const PageStorageKey('myWordsTextField'),
                         controller: myWordsController,
                         keyboardType: TextInputType.multiline,
-                        onChanged: (String word) => setState(() {}),
+                        onChanged: (String word) => setState(() => verifiedWords = null),
                         minLines: 2,
                         maxLines: null,
                         decoration: const InputDecoration(
@@ -523,9 +546,9 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
         title: RichText(
           text: TextSpan(
             style: GoogleFonts.varelaRound().copyWith(fontSize: 26),
-            children: const <TextSpan>[
-              TextSpan(text: 'W', style: TextStyle(color: Constants.primaryColor)),
-              TextSpan(text: 'oggle'),
+            children: <TextSpan>[
+              const TextSpan(text: 'W', style: TextStyle(color: Constants.primaryColor)),
+              TextSpan(text: 'oggle', style: TextStyle(color: Theme.of(context).colorScheme.onBackground)),
             ],
           ),
         ),
@@ -541,7 +564,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                   (String word) {
                     removeWord(word);
                     hasModifiedDictionary = true;
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$word removed from dictionary')));
+                    showSnackBar(context, '$word removed from dictionary');
                   },
                   removedWords,
                   (String word) {
@@ -559,7 +582,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       isAdded = true;
                     }
                     else { message = '"$word" already in dictionary'; }
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+                    showSnackBar(context, message);
                     return isAdded;
                   }
                   ))
@@ -707,24 +730,27 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       mainAxisSize: MainAxisSize.min,
                                       children: List.generate(5, (index) => index + 1).map((dimension) {
-                                        return ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            elevation: 0,
-                                            backgroundColor: dimension == boardDimension
-                                              ? Theme.of(context).colorScheme.secondary
-                                              : Theme.of(context).dividerColor,
-                                            foregroundColor: Theme.of(context).colorScheme.onSecondary,
-                                            minimumSize: const Size.fromHeight(40),
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(vertical: 4),
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              elevation: 0,
+                                              backgroundColor: dimension == boardDimension
+                                                ? Theme.of(context).colorScheme.secondary
+                                                : Theme.of(context).canvasColor,
+                                              foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                                              minimumSize: const Size.fromHeight(40),
+                                            ),
+                                            onPressed: () async {
+                                              Navigator.pop(dialogContext);
+                                              boardDimension = dimension;
+                                              generate(shouldUpdateUI: true);
+                                                  
+                                              prefs ??= await SharedPreferences.getInstance();
+                                              prefs!.setInt('boardDimension', dimension);
+                                            },
+                                            child: Text('${dimension}x${dimension}'),
                                           ),
-                                          onPressed: () async {
-                                            Navigator.pop(dialogContext);
-                                            boardDimension = dimension;
-                                            generate(shouldUpdateUI: true);
-                                                
-                                            prefs ??= await SharedPreferences.getInstance();
-                                            prefs!.setInt('boardDimension', dimension);
-                                          },
-                                          child: Text('${dimension}x${dimension}'),
                                         );
                                       }).toList(),
                                     ),
@@ -750,13 +776,10 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
         elevation: 0,
         onPressed: userIsFindingWords ? () {
           FocusManager.instance.primaryFocus?.unfocus();
-          verifyWords();
+          if (verifiedWords == null) { verifyWords(); }
           myWordsScrollController.jumpTo(0);
           setState(() => userIsFindingWords = false);
-        } : () {
-          verifiedWords = null;
-          setState(() => userIsFindingWords = true);
-        },
+        } : () { setState(() => userIsFindingWords = true); },
         child: Icon(userIsFindingWords ? Icons.check_rounded : Icons.edit_outlined),
       ) : Container(),
     );

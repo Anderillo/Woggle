@@ -33,6 +33,7 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
 
   Widget buildDefinition(String? definition) {
     List<String> definitions = (definition ?? 'No definition found.').split(' / ');
+    TextStyle textStyle = TextStyle(color: Theme.of(context).colorScheme.onBackground);
     TextStyle linkStyle = TextStyle(color: Theme.of(context).colorScheme.secondary);
     List<Widget> definitionWidgets = [];
     for (int i = 0; i < definitions.length; i++) {
@@ -44,7 +45,7 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
         if (word[0] != '[') { spans.add(TextSpan(text: j > 0 ? ' $word' : word.capitalize())); }
         else {
           String cleanedWord = word.replaceAll('[', '').replaceAll(']', '');
-          if (widget.getWord == null) { spans.add(TextSpan(text: j > 0 ? ' $cleanedWord' : cleanedWord.capitalize())); }
+          if (widget.getWord == null) { spans.add(TextSpan(text: j > 0 ? ' $cleanedWord' : cleanedWord.capitalize(), style: textStyle)); }
           else {
             spans.add(TextSpan(
               text: j > 0 ? ' $cleanedWord' : cleanedWord.capitalize(),
@@ -86,7 +87,9 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
   @override
   Widget build(BuildContext context) {
     Word currentWord = wordsSoFar.last;
+    EdgeInsets insetPadding = EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width > 600 ? MediaQuery.of(context).size.width * 0.25 : 40.0, vertical: 24.0);
     return AlertDialog(
+      insetPadding: insetPadding,
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -107,11 +110,8 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
           onPressed: () async {
             final Uri url = Uri.parse('https://www.dictionary.com/browse/${currentWord.word}');
             if (!await launchUrl(url)) {
-              SnackBar snackBar = SnackBar(
-                content: Text('Could not launch Dictionary.com for "${currentWord.word}"'),
-              );
               // ignore: use_build_context_synchronously
-              ScaffoldMessenger.of(context).showSnackBar(snackBar);
+              showSnackBar(context, 'Could not launch Dictionary.com for "${currentWord.word}"');
             }
             // ignore: use_build_context_synchronously
             Navigator.pop(context);
