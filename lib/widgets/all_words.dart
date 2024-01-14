@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:woggle/board/found_word.dart';
 import 'package:woggle/board/word.dart';
@@ -32,6 +33,7 @@ class AllWords extends StatelessWidget {
     else if (workingWords!.isEmpty) { return const Center(child: Text('No words found!'),); }
     else if (workingWords!.isNotEmpty) {
       return Wrap(
+        runSpacing: kIsWeb ? 12 : 0,
         children: workingWords!.map((word) {
           FoundWord? foundWord = verifiedWords?.firstWhereOrNull((verifiedWord) => verifiedWord.word.word == word.word);
           Color? backgroundColor = Colors.grey[700];

@@ -410,77 +410,80 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   Word getWord(String word) => Word(word, dictionary.hasWord(word).definition);
 
   Widget buildTabs(List<Word>? workingWords) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: TabBar(
-            controller: tabController,
-            tabs: [
-              Tab(text: 'My Words${verifiedWords == null ? '' : ' (${VerifiedWords.getNumVerifiedWords(verifiedWords)})'}'),
-              Tab(text: 'All Words${workingWords == null ? '' : ' (${workingWords.length})'}'),
-            ],
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 600,),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TabBar(
+              controller: tabController,
+              tabs: [
+                Tab(text: 'My Words${verifiedWords == null ? '' : ' (${VerifiedWords.getNumVerifiedWords(verifiedWords)})'}'),
+                Tab(text: 'All Words${workingWords == null ? '' : ' (${workingWords.length})'}'),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: TabBarView(
-            controller: tabController,
-            children: [
-              SingleChildScrollView(
-                key: const PageStorageKey('myWords'),
-                controller: myWordsScrollController,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: userIsFindingWords ? Container(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: TextField(
-                      key: const PageStorageKey('myWordsTextField'),
-                      controller: myWordsController,
-                      keyboardType: TextInputType.multiline,
-                      onChanged: (String word) => setState(() {}),
-                      minLines: 2,
-                      maxLines: null,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'Enter words...',
-                        isDense: true,
+          const SizedBox(height: 8),
+          Expanded(
+            child: TabBarView(
+              controller: tabController,
+              children: [
+                SingleChildScrollView(
+                  key: const PageStorageKey('myWords'),
+                  controller: myWordsScrollController,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: userIsFindingWords ? Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: TextField(
+                        key: const PageStorageKey('myWordsTextField'),
+                        controller: myWordsController,
+                        keyboardType: TextInputType.multiline,
+                        onChanged: (String word) => setState(() {}),
+                        minLines: 2,
+                        maxLines: null,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Enter words...',
+                          isDense: true,
+                        ),
+                        enableSuggestions: false,
+                        autocorrect: false,
                       ),
-                      enableSuggestions: false,
-                      autocorrect: false,
+                    ) : VerifiedWords(
+                      verifiedWords,
+                      words?.length,
+                      () => setState(() {}),
+                      addWord,
+                      removeWord,
+                      getWord,
                     ),
-                  ) : VerifiedWords(
-                    verifiedWords,
-                    words?.length,
-                    () => setState(() {}),
-                    addWord,
-                    removeWord,
-                    getWord,
                   ),
                 ),
-              ),
-              SingleChildScrollView(
-                key: const PageStorageKey('allWords'),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: AllWords(
-                    workingWords,
-                    verifiedWords,
-                    isSearchAvailable ? () {
-                      FocusManager.instance.primaryFocus?.unfocus();
-                      board = Board(boardString, minWordLength);
-                      words = board!.search(dictionary);
-                      setState(() {});
-                    } : null,
-                    (String word) => removeWord(word),
-                    getWord,
+                SingleChildScrollView(
+                  key: const PageStorageKey('allWords'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: AllWords(
+                      workingWords,
+                      verifiedWords,
+                      isSearchAvailable ? () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        board = Board(boardString, minWordLength);
+                        words = board!.search(dictionary);
+                        setState(() {});
+                      } : null,
+                      (String word) => removeWord(word),
+                      getWord,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
