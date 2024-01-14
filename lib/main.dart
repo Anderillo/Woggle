@@ -12,6 +12,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Woggle',
       theme: ThemeData(
         brightness: Brightness.dark,
         primaryColor: Constants.primaryColor,

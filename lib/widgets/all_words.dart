@@ -21,7 +21,7 @@ class AllWords extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(16),
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(elevation: 0),
+              style: ElevatedButton.styleFrom(elevation: 0, backgroundColor: Theme.of(context).colorScheme.primary),
               onPressed: onSearch,
               child: Text('Search', style: TextStyle(color: Theme.of(context).colorScheme.onPrimary)),
             ),

@@ -1,5 +1,5 @@
-import 'package:woggle/utils/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:woggle/utils/utils.dart';
 
 class JoinGameDialog extends StatefulWidget {
   final Function(String) onStart;
@@ -40,7 +40,10 @@ class _JoinGameDialogState extends State<JoinGameDialog> {
             showLoader(context);
             String? boardString;
             try { boardString = await boardSecrets(textEditingController.text, encrypt: false); }
-            catch (e) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Decryption failed'))); }
+            catch (e) {
+              // ignore: use_build_context_synchronously
+              showSnackBar(context, 'Decryption failed');
+            }
             hideLoader();
             if (boardString != null) { widget.onStart(boardString); }
           },

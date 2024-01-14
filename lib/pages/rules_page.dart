@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:woggle/board/dice.dart';
 import 'package:woggle/board/found_word.dart';
@@ -95,7 +97,7 @@ class _RulesPageState extends State<RulesPage> with SingleTickerProviderStateMix
       else { letters.add(boardString[i]); }
     }
 
-    double width = MediaQuery.of(context).size.width * 0.7;
+    double width = min(MediaQuery.of(context).size.width * 0.7, 400);
     double fontSize = MediaQuery.of(context).size.height / (boardDimension * 7);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

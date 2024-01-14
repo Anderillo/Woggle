@@ -107,11 +107,8 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
           onPressed: () async {
             final Uri url = Uri.parse('https://www.dictionary.com/browse/${currentWord.word}');
             if (!await launchUrl(url)) {
-              SnackBar snackBar = SnackBar(
-                content: Text('Could not launch Dictionary.com for "${currentWord.word}"'),
-              );
               // ignore: use_build_context_synchronously
-              ScaffoldMessenger.of(context).showSnackBar(snackBar);
+              showSnackBar(context, 'Could not launch Dictionary.com for "${currentWord.word}"');
             }
             // ignore: use_build_context_synchronously
             Navigator.pop(context);
