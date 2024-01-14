@@ -37,7 +37,7 @@ class WordChip extends StatelessWidget {
             if (frontActions != null) ...frontActions!,
             SizedBox(width: frontActions?.isNotEmpty ?? false ? 2 : 16, height: 34),
             Container(
-              padding: EdgeInsets.symmetric(vertical: (frontActions?.isEmpty ?? true) && (actions?.isEmpty ?? true) ? 14 : 0),
+              padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 '${word.word}${wordExtension ?? ''}',
                 style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color).merge(wordStyle),
@@ -64,7 +64,7 @@ class ChipAction extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.all(2),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         child: IconButton(
           splashRadius: iconSize * 0.8,
           constraints: BoxConstraints(maxHeight: iconSize, maxWidth: iconSize),
