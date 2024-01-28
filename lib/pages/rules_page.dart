@@ -187,15 +187,16 @@ class _RulesPageState extends State<RulesPage> with SingleTickerProviderStateMix
               buildHeaderBlock('Playing the Game'),
               buildBodyBlock('Starting with whoever got the most words, take turns reading your lists.'),
               buildBodyBlock('If two people got the same word, both of you cross it off your lists. Otherwise, it counts as points!'),
-              buildBodyBlock('Word Rules'),
-              ...['English words', 'Archaic', 'Informal'].map((String instruction) => buildRuleItem(
+              buildHeaderBlock('Word Rules'),
+              ...['English words'].map((String instruction) => buildRuleItem(
                 const Icon(Icons.check_circle_outline_outlined, color: isPointsColor),
                 instruction,
               )),
-              ...['Dialectal', 'Obsolete', 'Slang', 'Proper (nouns or adjectives)'].map((String instruction) => buildRuleItem(
+              ...['Proper nouns'].map((String instruction) => buildRuleItem(
                 const Icon(Icons.highlight_off_rounded, color: isNotWordColor),
                 instruction,
               )),
+              buildBodyBlock('If you\'re not sure, write it down; then, when we check your words, they\'ll be compared against the official dictionary for validity.'),
               buildBodyBlock('Whoever gets the most points wins.'),
               buildSpace(),
               buildHeaderBlock('That\'s it! Happy Woggling!!'),

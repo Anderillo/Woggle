@@ -33,7 +33,7 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
 
   Widget buildDefinition(String? definition) {
     List<String> definitions = (definition ?? 'No definition found.').split(' / ');
-    TextStyle textStyle = TextStyle(color: Theme.of(context).colorScheme.onBackground);
+    TextStyle textStyle = TextStyle(color: Theme.of(context).colorScheme.onPrimary);
     TextStyle linkStyle = TextStyle(color: Theme.of(context).colorScheme.secondary);
     List<Widget> definitionWidgets = [];
     for (int i = 0; i < definitions.length; i++) {
