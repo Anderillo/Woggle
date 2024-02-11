@@ -38,11 +38,11 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
     List<Widget> definitionWidgets = [];
     for (int i = 0; i < definitions.length; i++) {
       List<TextSpan> spans = [];
-      if (definitions.length > 1) { spans.add(TextSpan(text: '${i + 1}. ')); }
+      if (definitions.length > 1) { spans.add(TextSpan(text: '${i + 1}. ', style: textStyle)); }
       List<String> words = definitions[i].split(' ');
       for (int j = 0; j < words.length; j++) {
         String word = words[j];
-        if (word[0] != '[') { spans.add(TextSpan(text: j > 0 ? ' $word' : word.capitalize())); }
+        if (word[0] != '[') { spans.add(TextSpan(text: j > 0 ? ' $word' : word.capitalize(), style: textStyle)); }
         else {
           String cleanedWord = word.replaceAll('[', '').replaceAll(']', '');
           if (widget.getWord == null) { spans.add(TextSpan(text: j > 0 ? ' $cleanedWord' : cleanedWord.capitalize(), style: textStyle)); }
@@ -87,7 +87,14 @@ class _DefinitionDialogState extends State<DefinitionDialog> {
   @override
   Widget build(BuildContext context) {
     Word currentWord = wordsSoFar.last;
-    EdgeInsets insetPadding = EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width > 600 ? MediaQuery.of(context).size.width * 0.25 : 40.0, vertical: 24.0);
+    EdgeInsets insetPadding = EdgeInsets.symmetric(
+      horizontal: MediaQuery.of(context).size.width > 1000
+        ? MediaQuery.of(context).size.width * 0.32
+        : MediaQuery.of(context).size.width > 600
+          ? MediaQuery.of(context).size.width * 0.24
+          : 40.0,
+      vertical: 24.0,
+    );
     return AlertDialog(
       insetPadding: insetPadding,
       title: Row(

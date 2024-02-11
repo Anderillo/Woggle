@@ -13,11 +13,11 @@ import 'package:woggle/board/dice.dart';
 import 'package:woggle/board/found_word.dart';
 import 'package:woggle/board/word.dart';
 import 'package:woggle/dialogs/join_game_dialog.dart';
-import 'package:woggle/dialogs/min_word_length_dialog.dart';
 import 'package:woggle/dictionary/dictionary.dart';
 import 'package:woggle/dictionary/dictionary_node.dart';
 import 'package:woggle/pages/dictionary_modifications_page.dart';
 import 'package:woggle/pages/rules_page.dart';
+import 'package:woggle/pages/settings_page.dart';
 import 'package:woggle/utils/constants.dart';
 import 'package:woggle/utils/utils.dart';
 import 'package:woggle/widgets/all_words.dart';
@@ -53,6 +53,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   List<FoundWord>? verifiedWords;
   bool hasModifiedDictionary = false;
   int? boardDimension;
+  bool? showTimerDuringPlay;
 
   final GlobalKey popupButtonKey = GlobalKey<State>(); 
 
@@ -85,6 +86,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     removedWords.addAll(prefs!.getStringList('removedWords')?.toList() ?? []);
     minWordLength = prefs!.getInt('minWordLength') ?? Constants.MIN_WORD_LENGTH_DEFAULT;
     boardDimension = prefs!.getInt('boardDimension') ?? Constants.BOARD_DIMENSION_DEFAULT;
+    showTimerDuringPlay = prefs!.getBool('showTimerDuringPlay') ?? true;
     setState(() {});
     generate(shouldUpdateUI: true);
     
@@ -349,36 +351,6 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
           trailing: Icon(Icons.arrow_right_rounded),
         ),
       ),
-      PopupMenuItem<String>(
-        value: 'Min Word Length',
-        child: ListTile(title: Text('Min Word Length: $minWordLength')),
-        onTap: () => WidgetsBinding.instance.addPostFrameCallback((_) => showDialog(
-          context: context,
-          builder: (BuildContext dialogContext) => MinWordLengthDialog(
-            minWordLength,
-            (value) { setState(() => minWordLength = value); },
-          )).then((value) async {
-            prefs ??= await SharedPreferences.getInstance();
-            prefs!.setInt('minWordLength', minWordLength);
-
-            if (words != null) {
-              board = Board(boardString, minWordLength);
-              words = board!.search(dictionary);
-            }
-            if (!userIsFindingWords && verifiedWords != null) {
-              for (var verifiedWord in verifiedWords!) {
-                if (verifiedWord.state == null && verifiedWord.word.word.length < minWordLength) {
-                  verifiedWord.setState(FoundWordState.IS_TOO_SHORT);
-                }
-                else if (verifiedWord.state == FoundWordState.IS_TOO_SHORT && verifiedWord.word.word.length >= minWordLength) {
-                  verifiedWord.setState(null);
-                }
-              }
-            }
-            setState(() {});
-          }),
-        ),
-      ),
       const PopupMenuItem<String>(
         value: 'Dictionary',
         child: ListTile(title: Text('Dictionary')),
@@ -386,6 +358,10 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       const PopupMenuItem<String>(
         value: 'Rules',
         child: ListTile(title: Text('Rules')),
+      ),
+      const PopupMenuItem<String>(
+        value: 'Settings',
+        child: ListTile(title: Text('Settings')),
       ),
     ];
   }
@@ -611,6 +587,49 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
               else if (result == 'Rules') {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => RulesPage(minWordLength, boardDimension ?? Constants.BOARD_DIMENSION_DEFAULT)));
               }
+              else if (result == 'Settings') {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage(
+                  minWordLength,
+                  (newMinWordLength) async {
+                    minWordLength = newMinWordLength;
+                    setState(() {});
+                    prefs ??= await SharedPreferences.getInstance();
+                    prefs!.setInt('minWordLength', minWordLength);
+
+                    if (words != null) {
+                      board = Board(boardString, minWordLength);
+                      words = board!.search(dictionary);
+                    }
+                    if (!userIsFindingWords && verifiedWords != null) {
+                      for (var verifiedWord in verifiedWords!) {
+                        if (verifiedWord.state == null && verifiedWord.word.word.length < minWordLength) {
+                          verifiedWord.setState(FoundWordState.IS_TOO_SHORT);
+                        }
+                        else if (verifiedWord.state == FoundWordState.IS_TOO_SHORT && verifiedWord.word.word.length >= minWordLength) {
+                          verifiedWord.setState(null);
+                        }
+                      }
+                    }
+                    setState(() {});
+                  },
+                  boardDimension ?? Constants.BOARD_DIMENSION_DEFAULT,
+                  (dimension) async {
+                    boardDimension = dimension;
+                    generate(shouldUpdateUI: true);
+                        
+                    prefs ??= await SharedPreferences.getInstance();
+                    prefs!.setInt('boardDimension', dimension);
+                  },
+                  showTimerDuringPlay ?? true,
+                  (showTimer) async {
+                    showTimerDuringPlay = showTimer;
+                    setState(() {});
+                        
+                    prefs ??= await SharedPreferences.getInstance();
+                    prefs!.setBool('showTimerDuringPlay', showTimerDuringPlay!);
+                  }
+                )));
+              }
             },
             itemBuilder: (BuildContext context) => appBarActions,
           ),
@@ -666,7 +685,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                             padding: const EdgeInsets.only(right: 12),
                             child: Text(
                               '${numSeconds ~/ 60}:${(numSeconds % 60).toString().padLeft(2, '0')}',
-                              style: TextStyle(color: boardString != '' ? Theme.of(context).colorScheme.secondary : Colors.transparent, fontWeight: FontWeight.w600),
+                              style: TextStyle(color: boardString != '' && ((showTimerDuringPlay ?? true) || !(timer?.isActive ?? false) || numSeconds == Constants.NUM_SECONDS) ? Theme.of(context).colorScheme.secondary : Colors.transparent, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ),
@@ -706,63 +725,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       }),
                     ),
                   ),
-                  SizedBox(
-                    height: 56,
-                    width: 48,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        IconButton(
-                          onPressed: () => generate(shouldUpdateUI: true),
-                          icon: const Icon(Icons.restart_alt_rounded),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          child: GestureDetector(
-                            child: Text('${(boardDimension ?? Constants.BOARD_DIMENSION_DEFAULT).toString()}x${(boardDimension ?? Constants.BOARD_DIMENSION_DEFAULT).toString()}', style: TextStyle(color: Theme.of(context).colorScheme.secondary),),
-                            onTap: () {
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext dialogContext) {
-                                  return AlertDialog(
-                                    title: const Text('Board Dimension'),
-                                    content: Column(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: List.generate(5, (index) => index + 1).map((dimension) {
-                                        return Container(
-                                          padding: const EdgeInsets.symmetric(vertical: 4),
-                                          child: ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              elevation: 0,
-                                              backgroundColor: dimension == boardDimension
-                                                ? Theme.of(context).colorScheme.secondary
-                                                : Theme.of(context).canvasColor,
-                                              foregroundColor: Theme.of(context).colorScheme.onSecondary,
-                                              minimumSize: const Size.fromHeight(40),
-                                            ),
-                                            onPressed: () async {
-                                              Navigator.pop(dialogContext);
-                                              boardDimension = dimension;
-                                              generate(shouldUpdateUI: true);
-                                                  
-                                              prefs ??= await SharedPreferences.getInstance();
-                                              prefs!.setInt('boardDimension', dimension);
-                                            },
-                                            child: Text('${dimension}x${dimension}'),
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
+                  IconButton(onPressed: () => generate(shouldUpdateUI: true), icon: const Icon(Icons.restart_alt_rounded)),
                   SizedBox(height: timerControlIconSize * 2, width: timerControlIconSize * 2),
                 ],
               ),
