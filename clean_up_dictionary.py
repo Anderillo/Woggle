@@ -1,5 +1,6 @@
 import re
 
+# This dictionary.txt file was retrieved from https://raw.githubusercontent.com/scrabblewords/scrabblewords/main/words/North-American/NWL2020.txt
 with open('assets/dictionary.txt') as file:
     lines = [line.rstrip() for line in file]
     for i in range(len(lines)):
